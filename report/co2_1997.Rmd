@@ -1,1 +1,68 @@
-You will fill this file with all of your work, from the point of view of 1997!
+---
+title: "Global $CO_{2}$ Emissions in 1997"
+short: "What Keeling missed all these years"
+journal: "AER" # AER, AEJ, PP, JEL
+month: "`r format(Sys.Date(), '%m')`"
+year: "`r format(Sys.Date(), '%Y')`"
+vol: 0
+issue: 0
+keywords:
+  - Replication
+  - Modern Science
+author:
+  - name: Meral Basit
+    firstname: Meral
+    surname: Basit
+    email: meral@ischool.berkeley.edu
+    affiliation: UC Berkeley, School of Information
+  - name: Alex Hubbard
+    firstname: Alex
+    surname: Hubbard
+    email: alex.hubbard@ischool.berkeley.edu
+    affiliation: UC Berkeley, School of Information
+  - name: Mohamed Bakr
+    firstname: Mohamed 
+    surname: Bakr
+    email: m.bakr@ischool.berkeley.edu
+acknowledgements: | 
+  MIDS 271.
+abstract: | 
+  . 
+header-includes: 
+  - '\usepackage{graphicx}'
+  - '\usepackage{booktabs}'
+output: rticles::aea_article
+---
+
+```{r setup, echo=FALSE}
+## default to not show code, unless we ask for it.
+knitr::opts_chunk$set(echo=FALSE)
+options(digits = 3)
+```
+
+```{r load packages, echo = FALSE, message = FALSE}
+library(tidyverse)
+library(tsibble)
+```
+
+# Background 
+## Carbon Emissions 
+
+# Measurement and Data 
+## Measuring Atmospheric Carbon 
+
+## Historical Trends in Atmospheric Carbon
+
+# Models and Forecasts 
+
+## Linear Models 
+
+## ARIMA Models 
+
+## Forecasts 
+
+# Conclusions 
+
+
+
+
