@@ -78,7 +78,14 @@ $CO2_t$ is the atmospheric $CO_2$ level at time $t$.
 
 ## Measuring Atmospheric Carbon
 
+In this study, we will use the Mauna Loa Atmospheric $CO_2$ Concentration time series dataset that is a  available in `R`. The time series of 468 observations of the monthly Atmospheric concentrations of $CO_2$  from 1959 to 1997 expressed in parts per million (ppm). This means that, for example, a value of 320 means there are 320 CO2 molecules for every 1 million air particles (after the water vapor is removed from the sample). The data was reported in the preliminary 1997 SIO [@keeling1997].
+
+The data where collected at the Mouna Loa Observatory which located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes his location is "well situated to measure air masses that are representative of very large areas" [@4v5dl8o8qp].
+
+The values for February, March and April of 1964 were missing and have been obtained by interpolating linearly between the values for January and May of 1964.
+
 ## Historical Trends in Atmospheric Carbon
+
 
 # Models and Forecasts
 
