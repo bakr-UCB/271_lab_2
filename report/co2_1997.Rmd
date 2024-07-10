@@ -7,8 +7,8 @@ year: "`r format(Sys.Date(), '%Y')`"
 vol: 0
 issue: 0
 keywords:
-  - Replication
-  - Modern Science
+  - Global Warming
+  - Keeling Curve
 author:
   - name: Meral Basit
     firstname: Meral
@@ -24,14 +24,20 @@ author:
     firstname: Mohamed 
     surname: Bakr
     email: m.bakr@ischool.berkeley.edu
+    affiliation: UC Berkeley, School of Information
 acknowledgements: | 
-  MIDS 271.
+  Acknowledgements
 abstract: | 
-  . 
+  Abstract goes here
 header-includes: 
   - '\usepackage{graphicx}'
   - '\usepackage{booktabs}'
-output: rticles::aea_article
+  # - '\usepackage[numbers]{natbib}'
+output:  pdf_document
+# output: rticles::aea_article
+bibliography: BibFile.bib
+# biblio-style: apalike
+csl: data-science-journal.csl
 ---
 
 ```{r setup, echo=FALSE}
@@ -45,24 +51,46 @@ library(tidyverse)
 library(tsibble)
 ```
 
-# Background 
-## Carbon Emissions 
+\newpage
 
-# Measurement and Data 
-## Measuring Atmospheric Carbon 
+# Background
+
+## Carbon Emissions
+
+Carbon emissions refer to the release of carbon, particularly carbon dioxide ($CO_2$), into the atmosphere. This process primarily occurs through the burning of fossil fuels such as coal, oil, and natural gas, as well as through deforestation and various industrial processes. $CO_2$ is a greenhouse gas, meaning it traps heat in the Earth's atmosphere and contributes to the greenhouse effect, which leads to global warming and climate change.
+
+In our report we are trying to understand the trend of the atmospheric CO2 by asking the following research question:
+
+```{=tex}
+\begin{quote}
+  \textit{Is there a significant upward trend in atmospheric CO2 levels over time?}
+\end{quote}
+```
+### Null Hypothesis
+
+There is no significant upward trend in atmospheric CO2 levels over time.
+$H_0: \beta_1 \leq 0$
+Where: 
+$\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$.
+$CO2_t$ is the atmospheric $CO_2$ level at time $t$.
+
+# Measurement and Data
+
+## Measuring Atmospheric Carbon
 
 ## Historical Trends in Atmospheric Carbon
 
-# Models and Forecasts 
+# Models and Forecasts
 
-## Linear Models 
+## Linear Models
 
-## ARIMA Models 
+## ARIMA Models
 
-## Forecasts 
+## Forecasts
 
-# Conclusions 
+# Conclusions
 
+# Refrences
 
-
-
+\bibliographystyle{aea}
+\bibliography{BibFile}
