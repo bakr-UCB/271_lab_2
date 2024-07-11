@@ -24,6 +24,7 @@ options(digits = 3)
 
 ```{r load packages, echo = FALSE, message = FALSE}
 library(tidyverse)
+library(stargazer)
 library(tsibble)
 library(latex2exp)
 if (!requireNamespace("forecast", quietly = TRUE)) {
@@ -71,7 +72,7 @@ There is no significant upward trend in atmospheric CO2 levels over time. $H_0: 
 
 In this study, we will use the Mauna Loa Atmospheric $CO_2$ Concentration time series dataset that is a available in `R`. The time series of 468 observations of the monthly Atmospheric concentrations of $CO_2$ from 1959 to 1997 expressed in parts per million (ppm). This means that, for example, a value of 320 means there are 320 CO2 molecules for every 1 million air particles (after the water vapor is removed from the sample). The data was reported in the preliminary 1997 SIO [@keeling1997].
 
-The data where collected at the Mouna Loa Observatory which located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes his location is "well situated to measure air masses that are representative of very large areas" [@gml, @co2_measurements].
+The data where collected at the Mouna Loa Observatory which located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes this location "well situated to measure air masses that are representative of very large areas" [@gml], [@co2_measurements].
 
 The values for February, March and April of 1964 were missing and have been obtained by interpolating linearly between the values for January and May of 1964.
 
@@ -318,9 +319,41 @@ Adding a seasonal dummy variable helps to capture some of the seasonal variation
 
 # Conclusions
 
+\newpage
+
+\appendix
+\section{Appendix: Model comparison}
+
+```{r}
+# Create a list of models
+models <- list(mod.linear, log.mod.linear, mod.quadratic)
+
+# Add appropriate model names
+names(models) <- c("Linear Model", "Log Linear Model", "Quadratic Model")
+```
+
+```{r stargazer-table, warning=FALSE, include=TRUE, results='asis', tab.cap="Estimated Time Series Models"}
+# Generate the stargazer table
+stargazer(models, 
+          type = "latex",
+          # omit.stat = "aic",
+          single.row = TRUE,
+          title = "Estimated Time Series Models",
+          label = "tab:stargazer-table",
+          column.labels = names(models),
+          dep.var.caption  = "Output Variable: expected Atmospheric $CO_2$ Levels ",
+          # dep.var.labels   = "",
+          header = F,
+          digits = 2
+          # add.lines = list(
+          #   c("AIC", prettyNum(round(criteria_df$AIC, 2), big.mark = ",")),
+          #   c("AICc", prettyNum(round(criteria_df$AICc, 2), big.mark = ",")),
+          #   c("BIC", prettyNum(round(criteria_df$BIC, 2), big.mark = ","))
+          #)
+)
+```
+
 # Refrences
 
-```{=tex}
 \bibliographystyle{aea}
 \bibliography{BibFile}
-```
