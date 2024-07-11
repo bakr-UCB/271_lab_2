@@ -1,54 +1,45 @@
 ---
 title: "Global $CO_{2}$ Emissions in 1997"
 short: "What Keeling missed all these years"
-journal: "AER" # AER, AEJ, PP, JEL
-month: "`r format(Sys.Date(), '%m')`"
-year: "`r format(Sys.Date(), '%Y')`"
-vol: 0
-issue: 0
-keywords:
-  - Global Warming
-  - Keeling Curve
-author:
-  - name: Meral Basit
-    firstname: Meral
-    surname: Basit
-    email: meral@ischool.berkeley.edu
-    affiliation: UC Berkeley, School of Information
-  - name: Alex Hubbard
-    firstname: Alex
-    surname: Hubbard
-    email: alex.hubbard@ischool.berkeley.edu
-    affiliation: UC Berkeley, School of Information
-  - name: Mohamed Bakr
-    firstname: Mohamed 
-    surname: Bakr
-    email: m.bakr@ischool.berkeley.edu
-    affiliation: UC Berkeley, School of Information
-acknowledgements: | 
-  Acknowledgements
-abstract: | 
-  Abstract goes here
-header-includes: 
-  - '\usepackage{graphicx}'
-  - '\usepackage{booktabs}'
-  # - '\usepackage[numbers]{natbib}'
-output:  pdf_document
-# output: rticles::aea_article
+author: "Meral Basit, Alex Hubbard, Mohamed Bakr"
+output:
+  bookdown::pdf_document2:
+    toc: true
+    # citation_package: natbib
+    fig_caption: true
+    latex_engine: pdflatex
+fontsize: 11pt
+geometry: margin=1in
+editor_options: 
+  chunk_output_type: inline
 bibliography: BibFile.bib
-# biblio-style: apalike
 csl: data-science-journal.csl
 ---
 
 ```{r setup, echo=FALSE}
 ## default to not show code, unless we ask for it.
-knitr::opts_chunk$set(echo=FALSE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE, echo = FALSE, include = FALSE, message = FALSE, warning = FALSE, dpi=1000)
 options(digits = 3)
 ```
 
 ```{r load packages, echo = FALSE, message = FALSE}
 library(tidyverse)
 library(tsibble)
+library(latex2exp)
+if (!requireNamespace("forecast", quietly = TRUE)) {
+  install.packages("forecast")
+}
+library(forecast)
+library(patchwork)
+library(fable)
+library(lubridate)
+library(fable )
+library(feasts)
+library(astsa)
+library(patchwork)
+library(car)
+
+theme_set(theme_minimal())
 ```
 
 \newpage
@@ -68,24 +59,103 @@ In our report we are trying to understand the trend of the atmospheric CO2 by as
 ```
 ### Null Hypothesis
 
-There is no significant upward trend in atmospheric CO2 levels over time.
-$H_0: \beta_1 \leq 0$
-Where: 
-$\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$.
-$CO2_t$ is the atmospheric $CO_2$ level at time $t$.
+There is no significant upward trend in atmospheric CO2 levels over time. $H_0: \beta_1 \leq 0$ Where: $\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$. $CO2_t$ is the atmospheric $CO_2$ level at time $t$.
 
 # Measurement and Data
 
 ## Measuring Atmospheric Carbon
 
-In this study, we will use the Mauna Loa Atmospheric $CO_2$ Concentration time series dataset that is a  available in `R`. The time series of 468 observations of the monthly Atmospheric concentrations of $CO_2$  from 1959 to 1997 expressed in parts per million (ppm). This means that, for example, a value of 320 means there are 320 CO2 molecules for every 1 million air particles (after the water vapor is removed from the sample). The data was reported in the preliminary 1997 SIO [@keeling1997].
+In this study, we will use the Mauna Loa Atmospheric $CO_2$ Concentration time series dataset that is a available in `R`. The time series of 468 observations of the monthly Atmospheric concentrations of $CO_2$ from 1959 to 1997 expressed in parts per million (ppm). This means that, for example, a value of 320 means there are 320 CO2 molecules for every 1 million air particles (after the water vapor is removed from the sample). The data was reported in the preliminary 1997 SIO [@keeling1997].
 
-The data where collected at the Mouna Loa Observatory which located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes his location is "well situated to measure air masses that are representative of very large areas" [@4v5dl8o8qp].
+The data where collected at the Mouna Loa Observatory which located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes his location is "well situated to measure air masses that are representative of very large areas" [@gml, @co2_measurements].
 
 The values for February, March and April of 1964 were missing and have been obtained by interpolating linearly between the values for January and May of 1964.
 
 ## Historical Trends in Atmospheric Carbon
 
+The Keeling Curve is a graph of the accumulation of carbon dioxide in the Earth's atmosphere based on continuous measurements taken at the Mauna Loa Observatory on the island of Hawaii from 1958 to the present day. The curve is named for the scientist Charles David Keeling, who started the monitoring program and supervised it until his death in 2005 [@noauthor_keeling_2024]
+
+```{r EDA standard plots}
+# turn into tsibble
+co2 <- as_tsibble(co2)
+
+# time series
+p1 <- ggplot(co2, aes(x = index, y = value)) +
+  geom_line(linewidth = .5) +
+  labs(title = "Atmospheric CO2 1959-1997", x = "Month and Year", y = "CO2 (ppm)") +
+  theme_minimal()
+
+# acf
+p2 <- ggAcf(co2$value) + ggtitle("ACF CO2")
+
+# pacf
+p3 <- ggPacf(co2$value) + ggtitle("PACF CO2")
+
+# histogram
+p4 <- ggplot(co2, aes(x = value)) +
+  geom_histogram(bins = 20, fill = "lightblue", color = "black") +
+  labs(title = "Histogram of Atmospheric CO2", x = "CO2 (ppm)", y = "Frequency")
+
+# annual average
+p5 <- as_tibble(co2) %>%
+  mutate(year = year(index)) %>%
+  group_by(year) %>%
+  summarise(avg_value = mean(value, na.rm=TRUE)) %>%
+  ggplot(aes(x=year, y=avg_value)) +
+  geom_point() +
+  labs(title = "Average Yearly CO2 Levels", x = "Year", y = "Average CO2 (ppm)") +
+  theme_minimal()
+
+# make layout
+pw <- (p1 + p4) /
+  (p2 + p3) /
+  p5
+```
+
+```{r EDA-plots, include=TRUE,fig.cap="Atmospheric CO2 EDA standard plots", fig.width=9, fig.height=6}
+pw+ plot_annotation(
+  title = 'Atmospheric CO2 EDA plots',
+  subtitle = 'Upward trend with clear seasonal pattern',
+  caption = 'Source: Mauna Loa Atmospheric CO2 Concentration'
+)
+```
+
+As we see in Figure \@ref(fig:EDA-plots) the time series in the top left, there is a pretty strong seasonality as well as a linear upward trend. This dataset is not mean stationary but it may be variance stationary.
+
+The ACF tails off very slowly while the PACF drops shortly after lag 1 but still have oscillating pattern. This suggests that this series may have a unit root.
+
+The histogram in Figure \@ref(fig:EDA-plots) top right shows that there is a wide range of values with a slight right skew. The yearly average plot on the bottom illustrates the linear trend in the data series more explicitly.
+
+```{r EDA seasonality}
+p6 <- co2 %>%
+  ggplot(aes(x = index, y = value)) +
+  geom_line(linewidth = .5) +
+  labs(title = "Atmospheric CO2", x = "", y = "CO2 (ppm)") +
+  theme_minimal()
+
+p7 <- ggplot(subset(co2), 
+       aes(x = index, y = difference(value,6))) +
+  geom_line(linewidth = .5) +
+  labs(title = "Seasonally Differenced, Lag 6", x = "Date", y = "CO2 (ppm)") +
+  theme_minimal()
+```
+
+```{r def-plot, include=TRUE, fig.cap="Seasonally Differenced CO2 Concentrations (Lag 6)", fig.width=9}
+p7
+```
+
+```{r stationarity test KPSS, eval=FALSE, include=FALSE}
+co2 %>% 
+  mutate(log_value = log(value)) %>%
+  features(log_value, unitroot_kpss)
+
+co2 %>% 
+  mutate(diff_value = difference(value, 6)) %>%
+  features(diff_value, unitroot_kpss)
+```
+Based on the Figure \@ref(fig:EDA-plots) and after examining the time series more closely, we noted that the seasonal cycle seemed to be 6 lags long, we applied a seasonal differencing of 6 lags.  This transformation resulted in a stationary series.
+
+To confirm this we performed KPSS unit root test. With p-value of 0.1, fail to reject null hypothesis of stationarity, indicating that the transformed series is now stationary Figure \@ref(fig:def-plot)
 
 # Models and Forecasts
 
@@ -99,5 +169,7 @@ The values for February, March and April of 1964 were missing and have been obta
 
 # Refrences
 
+```{=tex}
 \bibliographystyle{aea}
 \bibliography{BibFile}
+```
