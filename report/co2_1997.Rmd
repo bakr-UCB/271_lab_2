@@ -172,7 +172,7 @@ In this section, we will analyze and compare two different models to gain a bett
 <!-- Fit a linear time trend model to the co2 series, and examine the characteristics of the residuals. Compare this to a quadratic time trend model. Discuss whether a logarithmic transformation of the data would be appropriate. Fit a polynomial time trend model that incorporates seasonal dummy variables, and use this model to generate forecasts to the year 2020. -->
 
 We start by fitting a linear model of the form: $$CO2_t=\phi_0+\phi_1t+\epsilon_t$$
-Based on the fit results, the estimated coefficient $\beta_1 = 0.109$ indicates that the $CO_2$ levels increase by $\approx$ 0.109 units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also proves evidence that the $CO_2$ levels have an upward linear trend.
+Based on the fit results, the estimated coefficient $\beta_1 = 0.109$ indicates that the $CO_2$ levels increase by $\approx 0.109$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also proves evidence that the $CO_2$ levels have an upward linear trend.
 
 Both $R^2$ and the adjusted $R^2$ value is $0.969$, which means that the linear model can explain $96.9%$ of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
 
@@ -230,9 +230,87 @@ ggplot(aes(x = index, y = resid(mod.quadratic))) +
 # residualPlot(mod.quadratic, main="Quadratic residuals")
 confint(mod.quadratic)
 ```
+
 ```{r res-compare, include=TRUE,fig.cap="Residuals of the Linear and Quadratic Models", fig.width=9, fig.height=3}
-lm.mod.res + qad.mod.res
+(lm.mod.res + qad.mod.res)
 ```
+```{r log-linear}
+# Log transformation for linear model
+log.mod.linear <- lm(log(value) ~ time(index), data = co2.ts)
+summary(log.mod.linear)
+
+# Plot the log linear model
+log.lm.mod.plot <- co2.ts |> 
+  ggplot(aes(x = index, y = log(value))) +
+  geom_line() +
+  geom_line(aes(y = predict(log.mod.linear)), color = "cornflowerblue") +
+  labs(title = "CO2 Levels with Fitted Linear Time Trend Model", x = "Month", y = "CO2 (ppm)")
+
+log.lm.mod.res <- co2.ts |> 
+ggplot( aes(x = index, y = resid(log.mod.linear))) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(formula = 'y ~ x',method = "loess", color = "blue", se = FALSE) +
+  labs(title = "Log-Linear Time Trend Model Residuals", x = "Month", y = "Residuals")
+```
+A logarithmic transformation can stabilize variance and make growth trends more linear. However, in this case, the log-linear model with $R^2 = 0.972$ does not significantly improve the fit compared to the quadratic model with $R^2 = 0.979$.
+
+```{r}
+co2.ts <- co2.ts %>% 
+  mutate(
+    month = month(index),
+    season = case_when(
+      month %in% c(12, 1, 2) ~ "Winter",
+      month %in% c(3, 4, 5) ~ "Spring",
+      month %in% c(6, 7, 8) ~ "Summer",
+      month %in% c(9, 10, 11) ~ "Fall"
+    )
+  )
+
+season_dummies <- model.matrix(~ season - 1, data = co2.ts)
+
+co2.ts <- bind_cols(co2.ts, season_dummies)
+
+mod.quadratic.season <- lm(value ~ as.numeric(index) + I(as.numeric(index)^2) + factor(season), data = co2.ts) # not sure this is correct
+
+
+```
+
+```{r}
+start_date <- as.Date("1995-01-01")
+end_date <- as.Date("2019-12-31")
+
+dates <- seq(from = start_date, to = end_date, by = "month")
+yearmonth_2020 <- data.frame(index = yearmonth(dates)) %>% 
+  as_tsibble()
+
+yearmonth_2020 <- yearmonth_2020 %>% 
+  mutate(
+      month = month(index),
+      season = case_when(
+        month %in% c(12, 1, 2) ~ "Winter",
+        month %in% c(3, 4, 5) ~ "Spring",
+        month %in% c(6, 7, 8) ~ "Summer",
+        month %in% c(9, 10, 11) ~ "Fall"
+      )
+    )
+
+season_dummies <- model.matrix(~ season - 1, data = yearmonth_2020)
+
+yearmonth_2020 <- bind_cols(yearmonth_2020, season_dummies)
+
+yearmonth_2020 <- yearmonth_2020 %>% 
+  mutate(
+    value = predict(mod.quadratic.season, yearmonth_2020)
+  )
+
+yearmonth_2020 %>%
+  ggplot(aes(x = index, y = value)) +
+  geom_line(linewidth = .5) +
+  labs(title = "Atmospheric CO2 Predictions to 2020", x = "", y = "CO2 (ppm)") +
+  theme_minimal()
+```
+Adding a seasonal dummy variable helps to capture some of the seasonal variation that we see in the historical CO2 levels. Using this and our quadratic model, we predict that CO2 levels will reach 411 ppm by 2020.
 
 ## ARIMA Models
 
