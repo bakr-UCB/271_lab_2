@@ -326,7 +326,8 @@ ggplot(aes(x = index, y = resid(mod.poly.season))) +
 
 # residualPlot(mod.poly.season, main="Polynomial model residuals")
 
-quad.poly <- quad.mod.plot + poly.mod.plot
+# Poly Model Accuracy 
+rmse.poly.season <- summary(mod.poly.season)$sigma
 ```
 
 As you can see in Figure \@ref(fig:quad-vs-poly), adding a seasonal dummy variable to a polynomial model helps to capture some of the seasonal variation that we see in the historical CO2 levels and improves the model's fit with $R^2 = 0.998$. 
@@ -464,7 +465,7 @@ forecasts <- co2_fit |>
   select(arima_fit_log.search) |>
   forecast(h="106 years")
 
-forecasts <- forecasts |> 
+forecasts.int <- forecasts |> 
   hilo(level=c(80, 95))
 
 forecasts |> 
@@ -477,21 +478,27 @@ forecasts |>
   labs(y = "Avg CO2 (ppm)",title = "Average CO2 ppm") + guides(colour = guide_legend(title = "Forecast"))+
   facet_wrap(~.model, ncol=1, nrow=2)
 
+# ARIMA model Accuracy
+rmse.arima <- accuracy(forecasts, co2.ts)['RMSE']
+
 # Find the first time CO2 levels reach 420 ppm
-time_420 <- forecasts |> filter(.mean >= 420) |> slice(1)
+time_420 <- forecasts.int |> filter(.mean >= 420) |> slice(1)
 date_420 <- time_420$index
 cof.int.420 <- time_420$`95%`
 
 # Find the first time CO2 levels reach 500 ppm
-time_500 <- forecasts |> filter(.mean >= 500) |> slice(1)
+time_500 <- forecasts.int |> filter(.mean >= 500) |> slice(1)
 date_500 <- time_500$index
 cof.int.500 <- time_500$`95%`
 
 # Predict CO2 levels in the year 2100
-forecast_2100 <- forecasts |> 
+forecast_2100 <- forecasts.int |> 
   filter(year(index) == 2100)
 
-avg.co2.2100 <- mean(forecast_2100$.mean)
+conf.int.2100.lower <- forecast_2100$`95%`[1]
+conf.int.2100.upper <- forecast_2100$`95%` |> tail(1)
+
+avg.co2.2100 <- round(mean(forecast_2100$.mean),0)
 
 ```
 
@@ -499,9 +506,15 @@ Using the polynomial model with seasonal dummies, we predict that CO2 levels wil
 
 Using our best model the RIMA(3,1,0)(2,1,0)[12], we predicted that the $CO_2$ levels will reach 420 ppm by `r date_420` with `r round(cof.int.420,0)`% confidence interval while it predicts it will reach 500 ppm by `r date_500` with `r round(cof.int.500,0)`% confidence interval.
 
-By 2100, our model predicts that CO2 levels will be at about `r avg.co2.2100` ppm on average. This prediction is likely highly inaccurate, as we are predicting out much further than our training data set. Additionally, this model does not factor in any events that might impact the rate of increase. For example, increases in efficiency and decarbonization of the grid may decrease the slope of the graph.
+By 2100, our model predicts that CO2 levels will be at about `r avg.co2.2100` ppm on average with confidence intervals varying between `r round(conf.int.2100.lower,0)`% and `r round(conf.int.2100.upper,0)`%. These predictions are may be highly inaccurate, since we are forecasting too far into the further. Additionally, our model does not account for any unforeseen events that might impact the rate of increase. For example, increases in efficiency and decarbonization of the grid may decrease the slope of the graph. The prediction intervals provide a measure of this uncertainty: the further the projected point, the wider the intervals.
 
 # Conclusions
+
+The polynomial model fits the $CO_2$ time series data well, explaining nearly 99.8% of the variance in $CO_2$ levels. The significant coefficients indicate a strong upward trend in atmospheric $CO_2$ levels over time with an accelerating rate of increase. We reject the null hypothesis $H_0: \beta_1 \leq 0$. This model provides a more nuanced understanding of the trend and variability in $CO_2$ levels compared to the simpler linear models estimated here.
+
+The selected ARIMA model (e.g., ARIMA(3, 1, 0)(2, 1, 0)[12]) effectively captures the trend and seasonality in the $CO_2$ time series data. The model diagnostics indicate a good fit, and the model suggests significant increases in atmospheric $CO_2$ levels if current trends continue. However, while the point estimates provide specific values, the prediction intervals highlight the uncertainty in the long-term forecasts.
+
+Finally, ARIMA model with RMSE `r round(rmse.arima, 2)`  performed better than the Polynomial model with RMSE `r round(rmse.poly.season, 2)`.
 
 \newpage
 
