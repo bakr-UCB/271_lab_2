@@ -26,6 +26,7 @@ options(digits = 3)
 library(tidyverse)
 library(stargazer)
 library(tsibble)
+library(ggtext)
 library(latex2exp)
 if (!requireNamespace("forecast", quietly = TRUE)) {
   install.packages("forecast")
@@ -43,6 +44,38 @@ library(car)
 theme_set(theme_minimal())
 ```
 
+```{r TWS theme, echo = FALSE}
+# color palette
+BERKELEY_BLUE = "#003262"
+CALIFORNIA_GOLD = "#FDB515"
+FOUNDERS_ROCK = "#3B7EA1"
+MEDALIST = "#C4820E"
+
+custom_palette <- c(
+"WHITE" = "#FFFFFF",
+"BERKELEY_BLUE" = BERKELEY_BLUE,
+"CALIFORNIA_GOLD" = CALIFORNIA_GOLD,
+"BLACK" = "#000000",
+"FOUNDERS_ROCK" = FOUNDERS_ROCK,
+"MEDALIST" = MEDALIST
+)
+
+## Create bar chart theme (Adapting Storytelling with Data guidance)
+theme_swd_bar <- theme(
+  plot.title = element_markdown(size = rel(1.5), color = "#000000"),
+  plot.subtitle = element_markdown(),
+  text = element_text(color = "#979797"),
+  axis.title.x = element_text(hjust = 0, vjust = -0.5),
+  axis.title.y = element_text(hjust = 1),
+  line = element_blank(),
+  rect = element_blank(),
+  legend.position = "none",
+  legend.justification='left'
+)
+
+# Properly format the commas while also removing the decimal places.
+scaleFUN <- function(x) format(round(as.numeric(x), 0), nsmall=0, big.mark=",")
+```
 \newpage
 
 # Background
@@ -88,18 +121,19 @@ co2.ts <- as_tsibble(co2)
 p1 <- ggplot(co2.ts, aes(x = index, y = value)) +
   geom_line(linewidth = .5) +
   labs(title = "Atmospheric CO2 1959-1997", x = "Month and Year", y = "CO2 (ppm)") +
-  theme_minimal()
+  theme_swd_bar
 
 # acf
-p2 <- ggAcf(co2.ts$value) + ggtitle("ACF CO2")
+p2 <- ggAcf(co2.ts$value) + ggtitle("ACF CO2") + theme_swd_bar
 
 # pacf
-p3 <- ggPacf(co2.ts$value) + ggtitle("PACF CO2")
+p3 <- ggPacf(co2.ts$value) + ggtitle("PACF CO2") + theme_swd_bar
 
 # histogram
 p4 <- ggplot(co2.ts, aes(x = value)) +
   geom_histogram(bins = 20, fill = "lightblue", color = "black") +
-  labs(title = "Histogram of Atmospheric CO2", x = "CO2 (ppm)", y = "Frequency")
+  labs(title = "Histogram of Atmospheric CO2", x = "CO2 (ppm)", y = "Frequency") + 
+  theme_swd_bar
 
 # annual average
 p5 <- as_tibble(co2.ts) %>%
@@ -108,8 +142,8 @@ p5 <- as_tibble(co2.ts) %>%
   summarise(avg_value = mean(value, na.rm=TRUE)) %>%
   ggplot(aes(x=year, y=avg_value)) +
   geom_point() +
-  labs(title = "Average Yearly CO2 Levels", x = "Year", y = "Average CO2 (ppm)") +
-  theme_minimal()
+  labs(title = "Average Yearly CO2 Levels", x = "Year", y = "Average CO2 (ppm)") + 
+  theme_swd_bar
 
 # make layout
 pw <- (p1 + p4) /
@@ -136,13 +170,13 @@ p6 <- co2.ts %>%
   ggplot(aes(x = index, y = value)) +
   geom_line(linewidth = .5) +
   labs(title = "Atmospheric CO2", x = "", y = "CO2 (ppm)") +
-  theme_minimal()
+  theme_swd_bar
 
 p7 <- ggplot(subset(co2.ts), 
        aes(x = index, y = difference(value,6))) +
   geom_line(linewidth = .5) +
   labs(title = "Seasonally Differenced, Lag 6", x = "Date", y = "CO2 (ppm)") +
-  theme_minimal()
+  theme_swd_bar
 ```
 
 ```{r def-plot, include=TRUE, fig.cap="Seasonally Differenced CO2 Concentrations (Lag 6)", fig.width=9, fig.height=2}
@@ -167,12 +201,12 @@ To confirm this we performed KPSS unit root test. With p-value of 0.1, fail to r
 
 In this section, we will analyze and compare two different models to gain a better understanding of the complex dynamics of the time series process. We will assess a linear model and an ARIMA model to identify the most appropriate time series model for our analysis.
 
-## Linear Models
+## Linear vs Quadratic Models
 
 <!-- (3 points) Task 2a: Linear time trend model -->
 <!-- Fit a linear time trend model to the co2 series, and examine the characteristics of the residuals. Compare this to a quadratic time trend model. Discuss whether a logarithmic transformation of the data would be appropriate. Fit a polynomial time trend model that incorporates seasonal dummy variables, and use this model to generate forecasts to the year 2020. -->
 
-We start by fitting a linear model of the form: $$CO2_t=\phi_0+\phi_1t+\epsilon_t$$
+We started by fitting a linear model of the form: $$CO2_t=\phi_0+\phi_1t+\epsilon_t$$
 Based on the fit results, the estimated coefficient $\beta_1 = 0.109$ indicates that the $CO_2$ levels increase by $\approx 0.109$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also proves evidence that the $CO_2$ levels have an upward linear trend.
 
 Both $R^2$ and the adjusted $R^2$ value is $0.969$, which means that the linear model can explain $96.9%$ of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
@@ -185,8 +219,9 @@ summary(mod.linear)
 lm.mod.plot <- co2.ts |> 
   ggplot(aes(x = index, y = value)) +
   geom_line() +
-  geom_line(aes(y = predict(mod.linear)), color = "cornflowerblue") +
-  labs(title = "CO2 Levels with Fitted Linear Time Trend Model", x = "Month", y = "CO2 (ppm)")
+  geom_line(aes(y = predict(mod.linear)), color = BERKELEY_BLUE) +
+  labs(title = "CO2 Levels with Fitted Linear Time Trend Model", x = "Month", y = "CO2 (ppm)") +
+  theme_swd_bar
 
 # Plot the residuals
 lm.mod.res <- co2.ts |> 
@@ -194,7 +229,8 @@ ggplot( aes(x = index, y = resid(mod.linear))) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   geom_smooth(formula = 'y ~ x',method = "loess", color = "blue", se = FALSE) +
-  labs(title = "Linear Time Trend Model Residuals", x = "Month", y = "Residuals")
+  labs(title = "Linear Time Trend Model Residuals", x = "Month", y = "Residuals") +
+  theme_swd_bar
 
 # residualPlot(mod.linear, main="Linear Residuals")
 confint(mod.linear)
@@ -214,26 +250,28 @@ mod.quadratic <- lm(value ~ time(index) + I(time(index)^2), data = co2.ts)
 summary(mod.quadratic)
 
 # Plot the quadratic model
-qad.mod.plot <- co2.ts |>
+quad.mod.plot <- co2.ts |>
 ggplot(aes(x = index, y = value)) +
   geom_line() +
-  geom_line(aes(y = predict(mod.quadratic)), color = "gold3") +
-  labs(title = "CO2 Levels with Fitted Quadratic Time Trend Model", x = "Month", y = "CO2 (ppm)")
+  geom_line(aes(y = predict(mod.quadratic)), color = CALIFORNIA_GOLD) +
+  labs(title = paste("Fitted <strong><span style='color:" , CALIFORNIA_GOLD ,"'>Quadratic</span></strong> Time Trend Model"), x = "Month", y = "CO2 (ppm)") +
+  theme_swd_bar
 
 # Plot quadratic model residuals
-qad.mod.res <- co2.ts |>
+quad.mod.res <- co2.ts |>
 ggplot(aes(x = index, y = resid(mod.quadratic))) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   geom_smooth(formula = 'y ~ x', method = "loess", color = "blue", se = FALSE) +
-  labs(title = "Quadratic Time Trend Model Residuals", x = "Month", y = "Residuals")
+  labs(title = "Quadratic Time Trend Model Residuals", x = "Month", y = "Residuals") +
+  theme_swd_bar
 
 # residualPlot(mod.quadratic, main="Quadratic residuals")
 confint(mod.quadratic)
 ```
 
 ```{r res-compare, include=TRUE,fig.cap="Residuals of the Linear and Quadratic Models", fig.width=9, fig.height=3}
-(lm.mod.res + qad.mod.res)
+(lm.mod.res + quad.mod.res)
 ```
 ```{r log-linear}
 # Log transformation for linear model
@@ -244,74 +282,106 @@ summary(log.mod.linear)
 log.lm.mod.plot <- co2.ts |> 
   ggplot(aes(x = index, y = log(value))) +
   geom_line() +
-  geom_line(aes(y = predict(log.mod.linear)), color = "cornflowerblue") +
-  labs(title = "CO2 Levels with Fitted Linear Time Trend Model", x = "Month", y = "CO2 (ppm)")
+  geom_line(aes(y = predict(log.mod.linear)), color = FOUNDERS_ROCK) +
+  labs(title = "CO2 Levels with Fitted Linear Time Trend Model", x = "Month", y = "CO2 (ppm)") +
+  theme_swd_bar
 
 log.lm.mod.res <- co2.ts |> 
 ggplot( aes(x = index, y = resid(log.mod.linear))) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   geom_smooth(formula = 'y ~ x',method = "loess", color = "blue", se = FALSE) +
-  labs(title = "Log-Linear Time Trend Model Residuals", x = "Month", y = "Residuals")
+  labs(title = "Log-Linear Time Trend Model Residuals", x = "Month", y = "Residuals") +
+  theme_swd_bar
 ```
 A logarithmic transformation can stabilize variance and make growth trends more linear. However, in this case, the log-linear model with $R^2 = 0.972$ does not significantly improve the fit compared to the quadratic model with $R^2 = 0.979$.
 
-```{r}
-co2.ts <- co2.ts %>% 
-  mutate(
-    month = month(index),
-    season = case_when(
-      month %in% c(12, 1, 2) ~ "Winter",
-      month %in% c(3, 4, 5) ~ "Spring",
-      month %in% c(6, 7, 8) ~ "Summer",
-      month %in% c(9, 10, 11) ~ "Fall"
-    )
-  )
+## polynomial model
 
-season_dummies <- model.matrix(~ season - 1, data = co2.ts)
+```{r polynomial model}
+# Add seasonal dummy variables
+co2.ts <- co2.ts |> 
+  mutate(month = factor(month(index)))
 
-co2.ts <- bind_cols(co2.ts, season_dummies)
+# Fit the polynomial model with seasonal dummies
+mod.poly.season <- lm(value ~ time(index) + I(time(index)^2) + month, data = co2.ts)
+summary(mod.poly.season)
 
-mod.quadratic.season <- lm(value ~ as.numeric(index) + I(as.numeric(index)^2) + factor(season), data = co2.ts) # not sure this is correct
+# Plot the polynomial model
+poly.mod.plot <- co2.ts |>
+ggplot(aes(x = index, y = value)) +
+  geom_line() +
+  geom_line(aes(y = predict(mod.poly.season)), color = FOUNDERS_ROCK) +
+  labs(title = paste("Fitted <strong><span style='color:" , FOUNDERS_ROCK ,"'>Polynomial</span></strong> Time Trend Model"), x = "Month", y = "CO2 (ppm)") +
+  theme_swd_bar
 
+# Plot quadratic model residuals
+poly.mod.res <- co2.ts |>
+ggplot(aes(x = index, y = resid(mod.poly.season))) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  geom_smooth(formula = 'y ~ x', method = "loess", color = "blue", se = FALSE) +
+  labs(title = "Polynomial Time Trend Model Residuals", x = "Month", y = "Residuals") +
+  theme_swd_bar
 
+# residualPlot(mod.poly.season, main="Polynomial model residuals")
+
+quad.poly <- quad.mod.plot + poly.mod.plot
 ```
 
-```{r}
-start_date <- as.Date("1995-01-01")
-end_date <- as.Date("2019-12-31")
+As you can see in Figure \@ref(fig:quad-vs-poly), adding a seasonal dummy variable to a polynomial model helps to capture some of the seasonal variation that we see in the historical CO2 levels and improves the model's fit with $R^2 = 0.998$. 
+
+```{r quad-vs-poly, include=TRUE, fig.cap="Quadratic Model vs Polynomial with seasonal dummies", fig.width=9, fig.height=4}
+quad.mod.plot + poly.mod.plot
+```
+
+
+
+
+```{r forecast}
+# Generate the prediction time series to 2020
+start_date <- as.Date("1998-01-01")
+end_date <- as.Date("2020-12-31")
 
 dates <- seq(from = start_date, to = end_date, by = "month")
-yearmonth_2020 <- data.frame(index = yearmonth(dates)) %>% 
+
+yearmonth_2020 <- data.frame(index = yearmonth(dates)) |> 
+  mutate(month = factor(month(index), levels = levels(co2.ts$month))) |> 
   as_tsibble()
 
-yearmonth_2020 <- yearmonth_2020 %>% 
-  mutate(
-      month = month(index),
-      season = case_when(
-        month %in% c(12, 1, 2) ~ "Winter",
-        month %in% c(3, 4, 5) ~ "Spring",
-        month %in% c(6, 7, 8) ~ "Summer",
-        month %in% c(9, 10, 11) ~ "Fall"
-      )
-    )
+# Combine the original data with the future dates
+extended.ts <- bind_rows(co2.ts, yearmonth_2020)
 
-season_dummies <- model.matrix(~ season - 1, data = yearmonth_2020)
+# Generate forecasts
+forecasts <- predict(mod.poly.season, newdata = extended.ts)
 
-yearmonth_2020 <- bind_cols(yearmonth_2020, season_dummies)
+# Combine the actual and forecasted data
+combined.data <- extended.ts |>  mutate(predictions = forecasts)
 
-yearmonth_2020 <- yearmonth_2020 %>% 
-  mutate(
-    value = predict(mod.quadratic.season, yearmonth_2020)
-  )
+# Avg 2020 forecasted CO2 levels
+predict.2020 <- combined.data |> 
+  filter(index >= yearmonth("2020 Jan") & index <= yearmonth("2020 Dec"))
 
-yearmonth_2020 %>%
-  ggplot(aes(x = index, y = value)) +
-  geom_line(linewidth = .5) +
-  labs(title = "Atmospheric CO2 Predictions to 2020", x = "", y = "CO2 (ppm)") +
-  theme_minimal()
+avg.co2.2020 <- mean(predict.2020$predictions, na.rm = TRUE)
+  
+# Plot the forecasts
+prediction_plot <- ggplot(combined.data, aes(x = index)) +
+  geom_line(aes(y = value), color = "black", linewidth = 1) +
+  geom_line(aes(y = predictions), color = "cornflowerblue", linetype = "dashed") +
+  geom_vline(xintercept = as.Date("1997-12-01"), linetype = "dashed", color = "red") +
+  annotate("text", x = as.Date("1997-12-01"), y = 390, label = "Forecast Start", angle = 90, vjust = -0.5) +
+  labs(title = "CO2 Levels with Polynomial Seasonal Model Predictions",
+       x = "Month", y = "CO2 (ppm)") + 
+  theme_swd_bar
 ```
-Adding a seasonal dummy variable helps to capture some of the seasonal variation that we see in the historical CO2 levels. Using this and our quadratic model, we predict that CO2 levels will reach 411 ppm by 2020.
+
+Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r avg.co2.2020` ppm by 2020 on average.
+
+```{r poly-plot, include=TRUE, fig.cap="Predicted Atmospheric CO2 levels till 2020", fig.width=9, fig.height= 3}
+prediction_plot
+```
+
+
 
 ## ARIMA Models
 
@@ -326,23 +396,23 @@ Adding a seasonal dummy variable helps to capture some of the seasonal variation
 
 ```{r}
 # Create a list of models
-models <- list(mod.linear, log.mod.linear, mod.quadratic)
+models <- list(mod.linear, log.mod.linear, mod.quadratic, mod.poly.season)
 
 # Add appropriate model names
-names(models) <- c("Linear Model", "Log Linear Model", "Quadratic Model")
+names(models) <- c("Linear Model", "Log Linear Model", "Quadratic Model", "Polynomial Model")
 ```
 
 ```{r stargazer-table, warning=FALSE, include=TRUE, results='asis', tab.cap="Estimated Time Series Models"}
 # Generate the stargazer table
 stargazer(models, 
           type = "latex",
-          # omit.stat = "aic",
+          omit.stat = "f",
           single.row = TRUE,
           title = "Estimated Time Series Models",
           label = "tab:stargazer-table",
           column.labels = names(models),
           dep.var.caption  = "Output Variable: expected Atmospheric $CO_2$ Levels ",
-          # dep.var.labels   = "",
+          dep.var.labels   = "",
           header = F,
           digits = 2
           # add.lines = list(
