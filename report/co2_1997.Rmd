@@ -335,49 +335,6 @@ As you can see in Figure \@ref(fig:quad-vs-poly), adding a seasonal dummy variab
 quad.mod.plot + poly.mod.plot
 ```
 
-```{r forecast}
-# Generate the prediction time series to 2020
-start_date <- as.Date("1998-01-01")
-end_date <- as.Date("2020-12-31")
-
-dates <- seq(from = start_date, to = end_date, by = "month")
-
-yearmonth_2020 <- data.frame(index = yearmonth(dates)) |> 
-  mutate(month = factor(month(index), levels = levels(co2.ts$month))) |> 
-  as_tsibble()
-
-# Combine the original data with the future dates
-extended.ts <- bind_rows(co2.ts, yearmonth_2020)
-
-# Generate forecasts
-forecasts <- predict(mod.poly.season, newdata = extended.ts)
-
-# Combine the actual and forecasted data
-combined.data <- extended.ts |>  mutate(predictions = forecasts)
-
-# Avg 2020 forecasted CO2 levels
-predict.2020 <- combined.data |> 
-  filter(index >= yearmonth("2020 Jan") & index <= yearmonth("2020 Dec"))
-
-avg.co2.2020 <- mean(predict.2020$predictions, na.rm = TRUE)
-  
-# Plot the forecasts
-prediction_plot <- ggplot(combined.data, aes(x = index)) +
-  geom_line(aes(y = value), color = "black", linewidth = 1) +
-  geom_line(aes(y = predictions), color = "cornflowerblue", linetype = "dashed") +
-  geom_vline(xintercept = as.Date("1997-12-01"), linetype = "dashed", color = "red") +
-  annotate("text", x = as.Date("1997-12-01"), y = 390, label = "Forecast Start", angle = 90, vjust = -0.5) +
-  labs(title = "CO2 Levels with Polynomial Seasonal Model Predictions",
-       x = "Month", y = "CO2 (ppm)") + 
-  theme_swd_bar
-```
-
-Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r round(avg.co2.2020,2)` ppm on average by 2020.
-
-```{r poly-plot, include=FALSE, fig.cap="Predicted Atmospheric CO2 levels till 2020", fig.width=9, fig.height= 3}
-prediction_plot
-```
-
 ## ARIMA Models
 
 <!-- Following all appropriate steps, choose an ARIMA model to fit to the series. Discuss the characteristics of your model and how you selected between alternative ARIMA specifications. Use your model (or models) to generate forecasts to the year 2022. -->
@@ -444,23 +401,105 @@ co2_fit|>
   report()
 ```
 
-The residuals line and `ACF` plots Figure \@ref(fig:ARIMA-residual) from the ARIMA(3,1,0)(2,1,0)[12] model shows that all autocorrelations are within the threshold limits, indicating that the residuals are behaving like white noise which is confirmed by `Ljung Box` test with a p-value = 0.358 we fail to reject the null hypothesis $H_0: \text{data is independently distributed}$.
+The residuals line and `ACF` plots Figure \@ref(fig:ARIMA-residual) from the ARIMA(3,1,0)(2,1,0)[12] model show that all autocorrelations are within the threshold limits, indicating that the residuals are behaving like white noise which is confirmed by `Ljung Box` test with a p-value = 0.358 we fail to reject the null hypothesis $H_0: \text{data is independently distributed}$.
 
 ```{r ARIMA-residual, include=TRUE, fig.cap="ARIMA(3,1,0)(2,1,0)[12] Model Residuals", fig.width=9, fig.height=3}
-co2_fit %>% 
-  select(arima_fit_log.search) %>%
+co2_fit |> 
+  select(arima_fit_log.search) |> 
   gg_tsresiduals()
 ```
 
 ```{r ARIMA ljung-box}
-augment(co2_fit) %>%
-  filter(.model == "arima_fit_log.search") %>% 
+augment(co2_fit) |> 
+  filter(.model == "arima_fit_log.search") |>  
   features(.innov, ljung_box, lag = 10, dof = 0)
 ```
 
 ## Forecasts
 
+```{r forecast}
+# Generate the prediction time series to 2020
+start_date <- as.Date("1998-01-01")
+end_date <- as.Date("2020-12-31")
 
+dates <- seq(from = start_date, to = end_date, by = "month")
+
+yearmonth_2020 <- data.frame(index = yearmonth(dates)) |> 
+  mutate(month = factor(month(index), levels = levels(co2.ts$month))) |> 
+  as_tsibble()
+
+# Combine the original data with the future dates
+extended.ts <- bind_rows(co2.ts, yearmonth_2020)
+
+# Generate forecasts
+forecasts <- predict(mod.poly.season, newdata = extended.ts)
+
+# Combine the actual and forecasted data
+combined.data <- extended.ts |>  mutate(predictions = forecasts)
+
+# Avg 2020 forecasted CO2 levels
+predict.2020 <- combined.data |> 
+  filter(index >= yearmonth("2020 Jan") & index <= yearmonth("2020 Dec"))
+
+avg.co2.2020 <- mean(predict.2020$predictions, na.rm = TRUE)
+  
+# Plot the forecasts
+prediction_plot <- ggplot(combined.data, aes(x = index)) +
+  geom_line(aes(y = value), color = "black", linewidth = 1) +
+  geom_line(aes(y = predictions), color = "cornflowerblue", linetype = "dashed") +
+  geom_vline(xintercept = as.Date("1997-12-01"), linetype = "dashed", color = "red") +
+  annotate("text", x = as.Date("1997-12-01"), y = 390, label = "Forecast Start", angle = 90, vjust = -0.5) +
+  labs(title = "CO2 Levels with Polynomial Seasonal Model Predictions",
+       x = "Month", y = "CO2 (ppm)") + 
+  theme_swd_bar
+```
+
+```{r poly-plot, include=FALSE, fig.cap="Predicted Atmospheric CO2 levels till 2020", fig.width=9, fig.height= 3}
+prediction_plot
+```
+
+```{r}
+# Forecasting till the year 2100 (2100 - 1995 = )
+forecasts <- co2_fit |> 
+  select(arima_fit_log.search) |>
+  forecast(h="106 years")
+
+forecasts <- forecasts |> 
+  hilo(level=c(80, 95))
+
+forecasts |> 
+  autoplot(colour="cornflowerblue") + 
+  autolayer(co2.ts, colour="black") + 
+  geom_line(data=co2_fit |> 
+              augment() |>
+              filter(.model %in% c("arima_fit_log.search")),
+            aes(index,.fitted,color=.model)) +
+  labs(y = "Avg CO2 (ppm)",title = "Average CO2 ppm") + guides(colour = guide_legend(title = "Forecast"))+
+  facet_wrap(~.model, ncol=1, nrow=2)
+
+# Find the first time CO2 levels reach 420 ppm
+time_420 <- forecasts |> filter(.mean >= 420) |> slice(1)
+date_420 <- time_420$index
+cof.int.420 <- time_420$`95%`
+
+# Find the first time CO2 levels reach 500 ppm
+time_500 <- forecasts |> filter(.mean >= 500) |> slice(1)
+date_500 <- time_500$index
+cof.int.500 <- time_500$`95%`
+
+# Predict CO2 levels in the year 2100
+forecast_2100 <- forecasts |> 
+  filter(year(index) == 2100)
+
+avg.co2.2100 <- mean(forecast_2100$.mean)
+
+```
+
+Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r round(avg.co2.2020,2)` ppm on average by 2020.
+
+Using our best model the RIMA(3,1,0)(2,1,0)[12], we predicted that the $CO_2$ levels will reach 420 ppm by `r date_420` with `r round(cof.int.420,0)`% confidence interval while it predicts it will reach 500 ppm by `r date_500` with `r round(cof.int.500,0)`% confidence interval.
+
+By 2100, our model predicts that CO2 levels will be at about `r avg.co2.2100` ppm on average. This prediction is likely highly inaccurate, as we are predicting out much further than our training data set. Additionally, this model does not factor in any events that might impact the rate of increase. For example, increases in efficiency and decarbonization of the grid may decrease the slope of the graph.
 
 # Conclusions
 
