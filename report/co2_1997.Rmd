@@ -159,9 +159,9 @@ pw + plot_annotation(
 )
 ```
 
-As we see in Figure \@ref(fig:EDA-plots) the time series in the top left, there is a pretty strong seasonality as well as a linear upward trend. This dataset is not mean stationary but it may be variance stationary.
+As we see in Figure \@ref(fig:EDA-plots) the time series in the top left, there is a pretty strong seasonality as well as a linear upward trend. Additionally, The dataset is not mean stationary but it may be variance stationary.
 
-The ACF tails off very slowly while the PACF drops shortly after lag 1 but still have oscillating pattern. This suggests that this series may have a unit root.
+The `ACF` decays slowly but does not dampen below the significance level even after lag 24. This suggests a strong autocorrelation in the $CO_2$ values while the `PACF` drops shortly after lag 1 but still have oscillating pattern with few lags above the significance level. This suggests that this series may have a unit root. Both `ACF` and `PACF` show seasonality patterns.
 
 The histogram in Figure \@ref(fig:EDA-plots) top right shows that there is a wide range of values with a slight right skew. The yearly average plot on the bottom illustrates the linear trend in the data series more explicitly.
 
@@ -179,7 +179,7 @@ p7 <- ggplot(subset(co2.ts),
   theme_swd_bar
 ```
 
-```{r def-plot, include=TRUE, fig.cap="Seasonally Differenced CO2 Concentrations (Lag 6)", fig.width=9, fig.height=2}
+```{r def-plot, include=FALSE, fig.cap="Seasonally Differenced CO2 Concentrations (Lag 6)", fig.width=9, fig.height=2}
 p7
 ```
 
@@ -193,9 +193,9 @@ co2.ts %>%
   features(diff_value, unitroot_kpss)
 ```
 
-Based on the Figure \@ref(fig:EDA-plots) and after examining the time series more closely, we noted that the seasonal cycle seemed to be 6 lags long, we applied a seasonal differencing of 6 lags.  This transformation resulted in a stationary series.
+<!-- Based on the Figure \@ref(fig:EDA-plots) and after examining the time series more closely, we noted that the seasonal cycle seemed to be 6 lags long, we applied a seasonal differencing of 6 lags.  This transformation resulted in a stationary series. -->
 
-To confirm this we performed KPSS unit root test. With p-value of 0.1, fail to reject null hypothesis of stationarity, indicating that the transformed series is now stationary Figure \@ref(fig:def-plot).
+<!-- To confirm this we performed KPSS unit root test. With p-value of 0.1, fail to reject null hypothesis of stationarity, indicating that the transformed series is now stationary Figure \@ref(fig:def-plot). -->
 
 # Models and Forecasts
 
@@ -335,9 +335,6 @@ As you can see in Figure \@ref(fig:quad-vs-poly), adding a seasonal dummy variab
 quad.mod.plot + poly.mod.plot
 ```
 
-
-
-
 ```{r forecast}
 # Generate the prediction time series to 2020
 start_date <- as.Date("1998-01-01")
@@ -375,17 +372,95 @@ prediction_plot <- ggplot(combined.data, aes(x = index)) +
   theme_swd_bar
 ```
 
-Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r avg.co2.2020` ppm by 2020 on average.
+Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r round(avg.co2.2020,2)` ppm on average by 2020.
 
-```{r poly-plot, include=TRUE, fig.cap="Predicted Atmospheric CO2 levels till 2020", fig.width=9, fig.height= 3}
+```{r poly-plot, include=FALSE, fig.cap="Predicted Atmospheric CO2 levels till 2020", fig.width=9, fig.height= 3}
 prediction_plot
 ```
 
-
-
 ## ARIMA Models
 
+<!-- Following all appropriate steps, choose an ARIMA model to fit to the series. Discuss the characteristics of your model and how you selected between alternative ARIMA specifications. Use your model (or models) to generate forecasts to the year 2022. -->
+
+Based on the EDA and `ACF` and `PACF` plots in Figure \@ref(fig:EDA-plots), it was challenging to determine the parameters $p$ and $q$ using a combination. Therefore, we used `AIC` and `BIC` to estimate the parameters.
+
+```{r test train split}
+co2_train <- co2.ts %>% 
+  filter(index < ymd(19950101))
+
+co2_test <- co2.ts %>% 
+  filter(index >= ymd(19950101))
+```
+
+To estimate the $i$ parameter, we used the `KPSS` test to check for stationarity. Initially, the p-value was 0.01, leading us to reject the null hypothesis, indicating non-stationarity. After differencing once, the p-value wend up to 0.1, and we failed to reject the null hypothesis, indicating that the data is stationary after one differencing.
+
+```{r stationarity test}
+co2_train %>% 
+  features(value, unitroot_kpss)
+
+co2_train %>% 
+  mutate(diff = difference(value)) %>% 
+  features(diff, unitroot_kpss)
+
+co2_train %>% features(value, unitroot_ndiffs)
+
+co2_train %>% 
+  gg_tsdisplay(difference(value), plot_type = "partial") +
+  labs(subtitle = "CO2")
+```
+We split the data into training and test datasets. We will use 1995 through 1997 as our test data, and pre-1995 as our training data. We then estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models, using both the regular and the logarithmic transformed $CO_2$ value once using stepwise and and non-stepwise search.
+
+```{r ARIMA model fit}
+co2_fit <- co2_train %>% 
+  model(
+    baseline = ARIMA(value ~ 0 + pdq(2,1,0) + PDQ(2,1,0)),
+    arima_fit = ARIMA(value),
+    arima_fit.search = ARIMA(value, stepwise = FALSE),
+    arima_fit_log = ARIMA(log(value)),
+    arima_fit_log.search = ARIMA(log(value), stepwise = FALSE)
+  )
+
+# Estimated models results
+co2_fit |> pivot_longer(cols = everything(), names_to = "Model name",
+                         values_to = "Orders") |> 
+  knitr::kable(caption = "Estimated ARIMA Models")
+```
+
+```{r ARIMA-results, include=TRUE, fig.cap="ARIMA Models Comparison", fig.height=2}
+# Model Comparison
+glance(co2_fit) |>
+  arrange(AICc) |> 
+  select(.model:BIC) |> 
+  mutate_if(is.numeric, round, digits =2) |> 
+  knitr::kable(caption = "ARIMA Models Comparison")
+```
+
+By examining Table \@ref(tab:ARIMA-results), we find that the model with the lowest AICc value is ARIMA(3,1,0)(2,1,0)[12] with a log transformation. This aligns with our earlier observation that the log transformation yields better results.
+
+```{r model coefs}
+# Inflation rates Model coefs
+co2_fit|>
+  select(arima_fit_log.search) |>
+  report()
+```
+
+The residuals line and `ACF` plots Figure \@ref(fig:ARIMA-residual) from the ARIMA(3,1,0)(2,1,0)[12] model shows that all autocorrelations are within the threshold limits, indicating that the residuals are behaving like white noise which is confirmed by `Ljung Box` test with a p-value = 0.358 we fail to reject the null hypothesis $H_0: \text{data is independently distributed}$.
+
+```{r ARIMA-residual, include=TRUE, fig.cap="ARIMA(3,1,0)(2,1,0)[12] Model Residuals", fig.width=9, fig.height=3}
+co2_fit %>% 
+  select(arima_fit_log.search) %>%
+  gg_tsresiduals()
+```
+
+```{r ARIMA ljung-box}
+augment(co2_fit) %>%
+  filter(.model == "arima_fit_log.search") %>% 
+  features(.innov, ljung_box, lag = 10, dof = 0)
+```
+
 ## Forecasts
+
+
 
 # Conclusions
 
@@ -422,6 +497,8 @@ stargazer(models,
           #)
 )
 ```
+
+
 
 # Refrences
 
