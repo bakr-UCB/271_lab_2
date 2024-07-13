@@ -355,24 +355,24 @@ co2_test <- co2.ts %>%
 To estimate the $i$ parameter, we used the `KPSS` test to check for stationarity. Initially, the p-value was 0.01, leading us to reject the null hypothesis, indicating non-stationarity. After differencing once, the p-value went up to 0.1, and we failed to reject the null hypothesis, indicating that the data is stationary after one differencing.
 
 ```{r stationarity test}
-co2_train %>% 
+co2.ts %>% 
   features(value, unitroot_kpss)
 
-co2_train %>% 
+co2.ts %>% 
   mutate(diff = difference(value)) %>% 
   features(diff, unitroot_kpss)
 
-co2_train %>% features(value, unitroot_ndiffs)
+co2.ts %>% features(value, unitroot_ndiffs)
 
-co2_train %>% 
+co2.ts %>% 
   gg_tsdisplay(difference(value), plot_type = "partial") +
   labs(subtitle = "CO2")
 ```
 
-We split the data into training and test datasets. We will use 1995 through 1997 as our test data, and pre-1995 as our training data. We then estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models, using both the regular and the logarithmic transformed $CO_2$ value once using stepwise and and non-stepwise search.
+We estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models, using both the regular and the logarithmic transformed $CO_2$ value once using stepwise and and non-stepwise search.
 
 ```{r ARIMA model fit}
-co2_fit <- co2_train %>% 
+co2_fit <- co2.ts %>% 
   model(
     baseline = ARIMA(value ~ 0 + pdq(2,1,0) + PDQ(2,1,0)),
     arima_fit = ARIMA(value),
@@ -441,6 +441,11 @@ forecasts <- predict(mod.poly.season, newdata = extended.ts)
 # Combine the actual and forecasted data
 combined.data <- extended.ts |>  mutate(predictions = forecasts)
 
+# Saving linear model predictions
+co2_poly_preditions <- combined.data |> filter(is.na(value)) |> select(-value)
+
+write.csv(co2_poly_preditions,"./data/co2_poly_preditions.csv", row.names = FALSE)
+
 # Avg 2020 forecasted CO2 levels
 predict.2020 <- combined.data |> 
   filter(index >= yearmonth("2020 Jan") & index <= yearmonth("2020 Dec"))
@@ -463,10 +468,20 @@ prediction_plot
 ```
 
 ```{r ARIMA Forecast}
-# Forecasting till the year 2100 (2100 - 1995 = )
+# Forecasting till the year 2100 (2100 - 1998 = 103)
 forecasts <- co2_fit |> 
   select(arima_fit_log.search) |>
-  forecast(h="106 years")
+  forecast(h="103 years")
+
+co2.Arima.predictions <- forecasts |>
+  as_tsibble() |> 
+  mutate(value = .mean) |>
+  select(index, value) |>
+  filter(index <= yearmonth("2024 Jun"))
+
+write.csv(co2.Arima.predictions,"./data/co2_arima_preditions.csv", row.names = FALSE)
+  
+as_tsibble(forecasts)
 
 forecasts.int <- forecasts |> 
   hilo(level=c(80, 95))
