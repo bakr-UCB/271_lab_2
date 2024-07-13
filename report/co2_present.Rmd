@@ -1,2 +1,24 @@
-You will fill this file with all your work from the point of view of the present! 
+---
+title: "Global $CO_{2}$ Emissions in 1997"
+short: "What Keeling missed all these years"
+author: "Meral Basit, Alex Hubbard, Mohamed Bakr"
+output:
+  bookdown::pdf_document2:
+    toc: true
+    # citation_package: natbib
+    fig_caption: true
+    latex_engine: pdflatex
+fontsize: 11pt
+geometry: margin=1in
+editor_options: 
+  chunk_output_type: inline
+bibliography: BibFile.bib
+csl: data-science-journal.csl
+---
+
+```{r setup, echo=FALSE}
+## default to not show code, unless we ask for it.
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=60),tidy=TRUE, echo = FALSE, include = FALSE, message = FALSE, warning = FALSE, dpi=1000)
+options(digits = 3)
+```
 
