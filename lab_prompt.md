@@ -1,6 +1,11 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
 Statistical Methods for Discrete Response, Time Series, and Panel Data
-(W271): Lab 2
-================
+(W271): Lab 2 ================
 
 # The Keeling Curve
 
@@ -18,9 +23,11 @@ seasonal cycle. He was able to attribute this trend increase to growth
 in global rates of fossil fuel combustion. This trend has continued to
 the present, and is known as the “Keeling Curve.”
 
-    ## Warning: package 'tsibble' was built under R version 4.1.3
+```         
+## Warning: package 'tsibble' was built under R version 4.1.3
 
-    ## Warning: package 'latex2exp' was built under R version 4.1.3
+## Warning: package 'latex2exp' was built under R version 4.1.3
+```
 
 ![](lab_prompt_files/figure-gfm/plot%20the%20keeling%20curve-1.png)<!-- -->
 
@@ -142,7 +149,7 @@ changed in the data generating process between 1997 and the present.
 
 The most current data is provided by the United States’ National Oceanic
 and Atmospheric Administration, on a data page
-\[[here](https://gml.noaa.gov/ccgg/trends/data.html)\]. Gather the most
+$$[here](https://gml.noaa.gov/ccgg/trends/data.html)$$. Gather the most
 recent weekly data from this page. (A group that is interested in even
 more data management might choose to work with the [hourly
 data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).)
