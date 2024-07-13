@@ -76,6 +76,7 @@ theme_swd_bar <- theme(
 # Properly format the commas while also removing the decimal places.
 scaleFUN <- function(x) format(round(as.numeric(x), 0), nsmall=0, big.mark=",")
 ```
+
 \newpage
 
 # Background
@@ -98,14 +99,16 @@ There is no significant upward trend in atmospheric CO2 levels over time. $H_0: 
 # Measurement and Data
 
 <!-- (3 points) Task 1a: CO2 data -->
+
 <!-- Conduct a comprehensive Exploratory Data Analysis on the co2 series. This should include (without being limited to) a description of how, where and why the data is generated, a thorough investigation of the trend, seasonal and irregular elements. Trends both in levels and growth rates should be discussed (consider expressing longer-run growth rates as annualized averages). -->
+
 <!-- What you report in the deliverable should not be your own process of discovery, but rather a guided discussion that you have constructed so that your audience can come to an understanding as succinctly and successfully as possible. This means that figures should be thoughtfully constructed and what you learn from them should be discussed in text; to the extent that there is any raw output from your analysis, you should intend for people to read and interpret it, and you should write your own interpretation as well. -->
 
 ## Measuring Atmospheric Carbon
 
 In this study, we will use the Mauna Loa Atmospheric $CO_2$ Concentration time series dataset that is a available in `R`. The time series of 468 observations of the monthly Atmospheric concentrations of $CO_2$ from 1959 to 1997 expressed in parts per million (ppm). This means that, for example, a value of 320 means there are 320 CO2 molecules for every 1 million air particles (after the water vapor is removed from the sample). The data was reported in the preliminary 1997 SIO [@keeling1997].
 
-The data where collected at the Mouna Loa Observatory which located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes this location "well situated to measure air masses that are representative of very large areas" [@gml], [@co2_measurements].
+The data was collected at the Mouna Loa Observatory which is located on the island of Hawaii at an elevation of 11,135 feet above sea level which makes this location "well situated to measure air masses that are representative of very large areas" [@gml], [@co2_measurements].
 
 The values for February, March and April of 1964 were missing and have been obtained by interpolating linearly between the values for January and May of 1964.
 
@@ -161,7 +164,7 @@ pw + plot_annotation(
 
 As we see in Figure \@ref(fig:EDA-plots) the time series in the top left, there is a pretty strong seasonality as well as a linear upward trend. Additionally, The dataset is not mean stationary but it may be variance stationary.
 
-The `ACF` decays slowly but does not dampen below the significance level even after lag 24. This suggests a strong autocorrelation in the $CO_2$ values while the `PACF` drops shortly after lag 1 but still have oscillating pattern with few lags above the significance level. This suggests that this series may have a unit root. Both `ACF` and `PACF` show seasonality patterns.
+The `ACF` decays slowly but does not dampen below the significance level even after lag 24. This suggests a strong autocorrelation in the $CO_2$ values while the `PACF` drops shortly after lag 1 but still has an oscillating pattern with a few lags above the significance level. This suggests that this series may have a unit root. Both `ACF` and `PACF` show seasonality patterns.
 
 The histogram in Figure \@ref(fig:EDA-plots) top right shows that there is a wide range of values with a slight right skew. The yearly average plot on the bottom illustrates the linear trend in the data series more explicitly.
 
@@ -193,9 +196,9 @@ co2.ts %>%
   features(diff_value, unitroot_kpss)
 ```
 
-<!-- Based on the Figure \@ref(fig:EDA-plots) and after examining the time series more closely, we noted that the seasonal cycle seemed to be 6 lags long, we applied a seasonal differencing of 6 lags.  This transformation resulted in a stationary series. -->
+<!-- Based on the Figure @ref(fig:EDA-plots) and after examining the time series more closely, we noted that the seasonal cycle seemed to be 6 lags long, we applied a seasonal differencing of 6 lags. This transformation resulted in a stationary series. -->
 
-<!-- To confirm this we performed KPSS unit root test. With p-value of 0.1, fail to reject null hypothesis of stationarity, indicating that the transformed series is now stationary Figure \@ref(fig:def-plot). -->
+<!-- To confirm this we performed KPSS unit root test. With p-value of 0.1, fail to reject null hypothesis of stationarity, indicating that the transformed series is now stationary Figure @ref(fig:def-plot). -->
 
 # Models and Forecasts
 
@@ -204,12 +207,12 @@ In this section, we will analyze and compare two different models to gain a bett
 ## Linear vs Quadratic Models
 
 <!-- (3 points) Task 2a: Linear time trend model -->
+
 <!-- Fit a linear time trend model to the co2 series, and examine the characteristics of the residuals. Compare this to a quadratic time trend model. Discuss whether a logarithmic transformation of the data would be appropriate. Fit a polynomial time trend model that incorporates seasonal dummy variables, and use this model to generate forecasts to the year 2020. -->
 
-We started by fitting a linear model of the form: $$CO2_t=\phi_0+\phi_1t+\epsilon_t$$
-Based on the fit results, the estimated coefficient $\beta_1 = 0.109$ indicates that the $CO_2$ levels increase by $\approx 0.109$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also proves evidence that the $CO_2$ levels have an upward linear trend.
+We started by fitting a linear model of the form: $CO2_t=\beta_0+\beta_1t+\epsilon_t$. Based on the fit results, the estimated coefficient $\beta_1 = 0.109$ indicates that the $CO_2$ levels increase by $\approx 0.109$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. That also provides evidence that the $CO_2$ levels have an upward linear trend.
 
-Both $R^2$ and the adjusted $R^2$ value is $0.969$, which means that the linear model can explain $96.9%$ of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
+Both $R^2$ and the adjusted $R^2$ value is $0.969$, which means that the linear model can explain $96.9$% of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
 
 ```{r linear model}
 mod.linear <- lm(value ~ time(index), data = co2.ts)
@@ -236,12 +239,11 @@ ggplot( aes(x = index, y = resid(mod.linear))) +
 confint(mod.linear)
 ```
 
-Next, we fit a quadratic model of the form: $$CO2_t= \phi_0 + \phi_1 t + \phi_2 t^2 + \epsilon_t$$
-Based on the fit results of the quadratic time trend model, the estimated coefficient $\beta_1 = 0.0674$ indicates that the $CO_2$ levels increase by $\approx0.0674$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also proves evidence that the $CO_2$ levels have an upward linear trend.
+Next, we fit a quadratic model of the form: $CO2_t= \beta_0 + \beta_1 t + \beta_2 t^2 + \epsilon_t$. Based on the fit results of the quadratic time trend model, the estimated coefficient $\beta_1 = 0.0674$ indicates that the $CO_2$ levels increase by $\approx0.0674$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also provides evidence that the $CO_2$ levels have an upward linear trend.
 
-the estimated quadratic term coefficient $\beta_2 = 0.0000886$ The positive coefficient suggests that the rate of increase in CO2 levels is accelerating. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_2 = 0$.
+The estimated quadratic term coefficient $\beta_2 = 0.0000886$. The positive coefficient suggests that the rate of increase in CO2 levels is accelerating. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_2 = 0$.
 
-Both $R^2$ and the adjusted $R^2$ value is $0.979$, which means that the linear model can explain $97.9%$ of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
+Both $R^2$ and the adjusted $R^2$ value is $0.979$, which means that the linear model can explain $97.9$% of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
 
 After analyzing the two models, it is obvious that the significant coefficients show a clear upward trend in CO2 levels over time, with a rapidly increasing rate. However, it seems that the quadratic model is slightly outperforming the linear model when comparing the $R^2$ results and examining the residual plots in Figure \@ref(fig:res-compare).
 
@@ -273,6 +275,7 @@ confint(mod.quadratic)
 ```{r res-compare, include=TRUE,fig.cap="Residuals of the Linear and Quadratic Models", fig.width=9, fig.height=3}
 (lm.mod.res + quad.mod.res)
 ```
+
 ```{r log-linear}
 # Log transformation for linear model
 log.mod.linear <- lm(log(value) ~ time(index), data = co2.ts)
@@ -294,9 +297,10 @@ ggplot( aes(x = index, y = resid(log.mod.linear))) +
   labs(title = "Log-Linear Time Trend Model Residuals", x = "Month", y = "Residuals") +
   theme_swd_bar
 ```
+
 A logarithmic transformation can stabilize variance and make growth trends more linear. However, in this case, the log-linear model with $R^2 = 0.972$ does not significantly improve the fit compared to the quadratic model with $R^2 = 0.979$.
 
-## polynomial model
+## Polynomial Model
 
 ```{r polynomial model}
 # Add seasonal dummy variables
@@ -330,7 +334,7 @@ ggplot(aes(x = index, y = resid(mod.poly.season))) +
 rmse.poly.season <- summary(mod.poly.season)$sigma
 ```
 
-As you can see in Figure \@ref(fig:quad-vs-poly), adding a seasonal dummy variable to a polynomial model helps to capture some of the seasonal variation that we see in the historical CO2 levels and improves the model's fit with $R^2 = 0.998$. 
+As you can see in Figure \@ref(fig:quad-vs-poly), adding a seasonal dummy variable to a polynomial model helps to capture some of the seasonal variation that we see in the historical $CO_2$ levels and improves the model's fit with $R^2 = 0.998$.
 
 ```{r quad-vs-poly, include=TRUE, fig.cap="Quadratic Model vs Polynomial with seasonal dummies", fig.width=9, fig.height=4}
 quad.mod.plot + poly.mod.plot
@@ -350,7 +354,7 @@ co2_test <- co2.ts %>%
   filter(index >= ymd(19950101))
 ```
 
-To estimate the $i$ parameter, we used the `KPSS` test to check for stationarity. Initially, the p-value was 0.01, leading us to reject the null hypothesis, indicating non-stationarity. After differencing once, the p-value wend up to 0.1, and we failed to reject the null hypothesis, indicating that the data is stationary after one differencing.
+To estimate the $i$ parameter, we used the `KPSS` test to check for stationarity. Initially, the p-value was 0.01, leading us to reject the null hypothesis, indicating non-stationarity. After differencing once, the p-value went up to 0.1, and we failed to reject the null hypothesis, indicating that the data is stationary after one differencing.
 
 ```{r stationarity test}
 co2_train %>% 
@@ -366,6 +370,7 @@ co2_train %>%
   gg_tsdisplay(difference(value), plot_type = "partial") +
   labs(subtitle = "CO2")
 ```
+
 We split the data into training and test datasets. We will use 1995 through 1997 as our test data, and pre-1995 as our training data. We then estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models, using both the regular and the logarithmic transformed $CO_2$ value once using stepwise and and non-stepwise search.
 
 ```{r ARIMA model fit}
@@ -459,7 +464,7 @@ prediction_plot <- ggplot(combined.data, aes(x = index)) +
 prediction_plot
 ```
 
-```{r}
+```{r ARIMA Forecast}
 # Forecasting till the year 2100 (2100 - 1995 = )
 forecasts <- co2_fit |> 
   select(arima_fit_log.search) |>
@@ -504,7 +509,7 @@ avg.co2.2100 <- round(mean(forecast_2100$.mean),0)
 
 Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r round(avg.co2.2020,2)` ppm on average by 2020.
 
-Using our best model the RIMA(3,1,0)(2,1,0)[12], we predicted that the $CO_2$ levels will reach 420 ppm by `r date_420` with `r round(cof.int.420,0)`% confidence interval while it predicts it will reach 500 ppm by `r date_500` with `r round(cof.int.500,0)`% confidence interval.
+Using our best model the ARIMA(3,1,0)(2,1,0)[12], we predicted that the $CO_2$ levels will reach 420 ppm by `r date_420` with `r round(cof.int.420,0)`% confidence interval while it predicts it will reach 500 ppm by `r date_500` with `r round(cof.int.500,0)`% confidence interval.
 
 By 2100, our model predicts that CO2 levels will be at about `r avg.co2.2100` ppm on average with confidence intervals varying between `r round(conf.int.2100.lower,0)`% and `r round(conf.int.2100.upper,0)`%. These predictions are may be highly inaccurate, since we are forecasting too far into the further. Additionally, our model does not account for any unforeseen events that might impact the rate of increase. For example, increases in efficiency and decarbonization of the grid may decrease the slope of the graph. The prediction intervals provide a measure of this uncertainty: the further the projected point, the wider the intervals.
 
@@ -514,13 +519,14 @@ The polynomial model fits the $CO_2$ time series data well, explaining nearly 99
 
 The selected ARIMA model (e.g., ARIMA(3, 1, 0)(2, 1, 0)[12]) effectively captures the trend and seasonality in the $CO_2$ time series data. The model diagnostics indicate a good fit, and the model suggests significant increases in atmospheric $CO_2$ levels if current trends continue. However, while the point estimates provide specific values, the prediction intervals highlight the uncertainty in the long-term forecasts.
 
-Finally, ARIMA model with RMSE `r round(rmse.arima, 2)`  performed better than the Polynomial model with RMSE `r round(rmse.poly.season, 2)`.
+Finally, ARIMA model with RMSE `r round(rmse.arima, 2)` performed better than the Polynomial model with RMSE `r round(rmse.poly.season, 2)`.
 
 \newpage
 
+```{=tex}
 \appendix
 \section{Appendix: Model comparison}
-
+```
 ```{r}
 # Create a list of models
 models <- list(mod.linear, log.mod.linear, mod.quadratic, mod.poly.season)
@@ -550,9 +556,9 @@ stargazer(models,
 )
 ```
 
-
-
 # Refrences
 
+```{=tex}
 \bibliographystyle{aea}
 \bibliography{BibFile}
+```
