@@ -35,10 +35,8 @@ library(forecast)
 library(patchwork)
 library(fable)
 library(lubridate)
-library(fable )
 library(feasts)
 library(astsa)
-library(patchwork)
 library(car)
 
 theme_set(theme_minimal())
@@ -355,16 +353,16 @@ co2_test <- co2.ts %>%
 To estimate the $i$ parameter, we used the `KPSS` test to check for stationarity. Initially, the p-value was 0.01, leading us to reject the null hypothesis, indicating non-stationarity. After differencing once, the p-value went up to 0.1, and we failed to reject the null hypothesis, indicating that the data is stationary after one differencing.
 
 ```{r stationarity test}
-co2.ts %>% 
+co2_train %>% 
   features(value, unitroot_kpss)
 
-co2.ts %>% 
+co2_train %>% 
   mutate(diff = difference(value)) %>% 
   features(diff, unitroot_kpss)
 
-co2.ts %>% features(value, unitroot_ndiffs)
+co2_train %>% features(value, unitroot_ndiffs)
 
-co2.ts %>% 
+co2_train %>% 
   gg_tsdisplay(difference(value), plot_type = "partial") +
   labs(subtitle = "CO2")
 ```
@@ -372,7 +370,7 @@ co2.ts %>%
 We estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models, using both the regular and the logarithmic transformed $CO_2$ value once using stepwise and and non-stepwise search.
 
 ```{r ARIMA model fit}
-co2_fit <- co2.ts %>% 
+co2_fit <- co2_train %>% 
   model(
     baseline = ARIMA(value ~ 0 + pdq(2,1,0) + PDQ(2,1,0)),
     arima_fit = ARIMA(value),
@@ -424,7 +422,7 @@ augment(co2_fit) |>
 ```{r forecast}
 # Generate the prediction time series to 2020
 start_date <- as.Date("1998-01-01")
-end_date <- as.Date("2020-12-31")
+end_date <- as.Date("2024-06-30")
 
 dates <- seq(from = start_date, to = end_date, by = "month")
 
@@ -471,13 +469,13 @@ prediction_plot
 # Forecasting till the year 2100 (2100 - 1998 = 103)
 forecasts <- co2_fit |> 
   select(arima_fit_log.search) |>
-  forecast(h="103 years")
+  forecast(h="106 years")
 
 co2.Arima.predictions <- forecasts |>
-  as_tsibble() |> 
+  as.tibble() |> 
   mutate(value = .mean) |>
   select(index, value) |>
-  filter(index <= yearmonth("2024 Jun"))
+  filter(between(index, yearmonth("1998-01"), yearmonth("2024-06")))
 
 write.csv(co2.Arima.predictions,"./data/co2_arima_preditions.csv", row.names = FALSE)
   

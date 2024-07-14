@@ -1,5 +1,5 @@
 ---
-title: "Global $CO_{2}$ Emissions in 1997"
+title: "Present Global $CO_{2}$ Emissions"
 short: "What Keeling missed all these years"
 author: "Meral Basit, Alex Hubbard, Mohamed Bakr"
 output:
@@ -25,9 +25,48 @@ options(digits = 3)
 ```{r load packages, echo = FALSE, message = FALSE}
 library(tidyverse)
 library(tsibble)
+library(ggtext)
+
+library(forecast)
+library(patchwork)
+library(fable)
+library(feasts)
 ```
 
+```{r TWS theme, echo = FALSE}
+# color palette
+BERKELEY_BLUE = "#003262"
+CALIFORNIA_GOLD = "#FDB515"
+FOUNDERS_ROCK = "#3B7EA1"
+MEDALIST = "#C4820E"
 
+custom_palette <- c(
+"WHITE" = "#FFFFFF",
+"BERKELEY_BLUE" = BERKELEY_BLUE,
+"CALIFORNIA_GOLD" = CALIFORNIA_GOLD,
+"BLACK" = "#000000",
+"FOUNDERS_ROCK" = FOUNDERS_ROCK,
+"MEDALIST" = MEDALIST
+)
+
+## Create bar chart theme (Adapting Storytelling with Data guidance)
+theme_swd_bar <- theme(
+  plot.title = element_markdown(size = rel(1.5), color = "#000000"),
+  plot.subtitle = element_markdown(),
+  text = element_text(color = "#979797"),
+  axis.title.x = element_text(hjust = 0, vjust = -0.5),
+  axis.title.y = element_text(hjust = 1),
+  line = element_blank(),
+  rect = element_blank(),
+  legend.position = "none",
+  legend.justification='left'
+)
+
+# Properly format the commas while also removing the decimal places.
+scaleFUN <- function(x) format(round(as.numeric(x), 0), nsmall=0, big.mark=",")
+```
+
+\newpage
 
 <!-- # Report from the Point of View of the Present -->
 
@@ -38,12 +77,15 @@ library(tsibble)
 
 <!-- In this introduction, you can assume that your reader will have **just** read your 1997 report. In this introduction, **very** briefly pose the question that you are evaluating, and describe what (if anything) has changed in the data generating process between 1997 and the present. -->
 
-Since our last report, the volcano where the research center is located erupted. Therefore the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. Additionally, there is a note that the last several months worth of data is "preliminary" and therefore could be revised.
+In the 1997 report, we explored the trend and variability in atmospheric $CO_2$ levels using polynomial and ARIMA models. Our analysis indicated a significant upward trend in $CO_2$ levels, with an accelerating rate of increase. In this report, we aim to re-evaluate those models and their predictions using the latest data. The central question we are addressing is: 
 
-** TO DO add question**
+```{=tex}
+\begin{quote}
+  \textit{Have the previous models accurately predicted current $CO_2$ levels?}
+\end{quote}
+```
 
 ### Null Hypothesis
-
 
 # Measurement and Data
 <!-- The most current data is provided by the United States' National Oceanic and Atmospheric Administration, on a data page [[here](https://gml.noaa.gov/ccgg/trends/data.html)]. Gather the most recent weekly data from this page. (A group that is interested in even more data management might choose to work with the [hourly data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).) -->
@@ -52,27 +94,38 @@ Since our last report, the volcano where the research center is located erupted.
 
 <!-- Conduct the same EDA on this data. Describe how the Keeling Curve evolved from 1997 to the present, noting where the series seems to be following similar trends to the series that you "evaluated in 1997" and where the series seems to be following different trends. This EDA can use the same, or very similar tools and views as you provided in your 1997 report. -->
 
+## Measuring Atmospheric Carbon
+
+Since our last report, the volcano near the research center has erupted. Therefore the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. Additionally, there is a note that the last several months worth of data is "preliminary" and therefore could be revised. Furthermore, the provided data consists of weekly averages, and we will need to calculate monthly averages from 1997 to the present in order to compare with the forecast data from the 1997 report.
+
 ```{r read data}
 co2_present <- read_csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", skip = 35)
 
-co2_present <- co2_present %>% 
-  mutate(
-    date_time = make_datetime(year, month, day),
-    year_week = yearweek(date_time)
-  )
+# co2_present <- co2_present %>% 
+#   mutate(
+#     date_time = make_datetime(year, month, day),
+#     year_week = yearweek(date_time)
+#   )
+
 
 # remove values less than 0
 co2_present <- co2_present %>% 
-  filter(average > 0)
-
-co2_present <- co2_present %>% 
-  as_tsibble(index = year_week) %>% 
-  fill_gaps()
+  filter(average > 0) %>% 
+  mutate(
+    date_time = make_datetime(year, month, day),
+    index = yearmonth(date_time)
+  ) %>%
+  as_tsibble(index = index, key=day) %>% 
+  fill_gaps()%>% 
+  
+  index_by(index) %>%
+  summarise(average = mean(average, na.rm = TRUE)) %>% 
+  filter(index >= yearmonth("1998 Jan"))
 ```
 
 ```{r EDA standard plots for present data}
 # time series
-p8 <- ggplot(co2_present, aes(x = date_time, y = average)) +
+p8 <- ggplot(co2_present, aes(x = index, y = average)) +
   geom_line(linewidth = .5) +
   labs(title = "Atmospheric CO2 1974-2024", x = "Date", y = "CO2 (ppm)") +
   theme_minimal()
@@ -90,7 +143,7 @@ p11 <- ggplot(co2_present, aes(x = average)) +
 
 # annual average
 p12 <- as_tibble(co2_present) %>%
-  mutate(year = year(date_time)) %>%
+  mutate(year = year(index)) %>%
   group_by(year) %>%
   summarise(avg_value = mean(average, na.rm=TRUE)) %>%
   ggplot(aes(x=year, y=avg_value)) +
@@ -99,13 +152,23 @@ p12 <- as_tibble(co2_present) %>%
   theme_minimal()
 
 # make layout
-(p8 + p11) /
+pw <- (p8 + p11) /
   (p9 + p10) /
   p12
 
 ```
 
-We see that there is a strong linear trend in the CO2 levels, as seen by the bottom plot of average yearly CO2. It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
+```{r EDA-plots, include=TRUE,fig.cap="Atmospheric CO2 EDA standard plots", fig.width=9, fig.height=5}
+pw + plot_annotation(
+  title = 'Atmospheric CO2 EDA plots 1997 - 2024',
+  subtitle = 'Upward trend with clear seasonal pattern',
+  caption = 'Source: Mauna Loa Atmospheric CO2 Concentration'
+)
+```
+
+## Historical vs Present Trends in Atmospheric Carbon
+
+We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ as shown in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
 # Model Comparisons
 
@@ -114,33 +177,47 @@ We see that there is a strong linear trend in the CO2 levels, as seen by the bot
 
 <!-- Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from a linear time model in 1997 (i.e. "Task 2a"). (You do not need to run any formal tests for this task.) -->
 
-```{r linear-compare, include=TRUE, fig.cap="Comparing Polynomial model predictions with actual data", fig.width=9, fig.height=3}
-co2_poly_preditions <- read_csv("./data/co2_poly_preditions.csv")
-ggplot(co2_present, aes(x = year_week)) +
+Our polynomial model looks like it did a pretty good job at predicting $CO_2$ up to 2020. It is missing the peaks and valleys, but it looks to capture the average yearly increase in $CO_2$ levels.
+
+```{r linear-compare}
+co2_poly_preditions <- read_csv("./data/co2_poly_preditions.csv") |> 
+  mutate(index = yearmonth(index))
+
+co2_poly_preditions |> as_tsibble()
+
+lm.plot <- ggplot(co2_present, aes(x = index)) +
   geom_line(aes(y = average, colour = "Actual")) +
   geom_line(data = co2_poly_preditions, aes(x = index, y = predictions, colour = "Predicted")) +
   labs(title = "CO2 Levels with Fitted Linear Trend", x = "Year", y = "CO2 (ppm)") +
   theme_minimal()
 ```
 
-Our polynomial model looks like it did a pretty good job at predicting CO2 up to 2020. It is missing the peaks and valleys, but it looks to capture the average yearly increase in CO2 levels.
+```{r lm-plots, include=TRUE,fig.cap="Comparing predicted Atmospheric CO2 Levels with Actual level - Polynomial Model", fig.width=9, fig.height=3}
+lm.plot
+```
 
 ## ARIMA Model
 <!-- ## (1 point) Task 3b: Compare ARIMA models forecasts against realized CO2 -->
 
 <!-- Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from the ARIMA model that you fitted in 1997 (i.e. "Task 3a"). Describe how the Keeling Curve evolved from 1997 to the present. -->
 
-```{r}
-co2.Arima.predictions <- read_csv("./data/co2_arima_preditions.csv")
+In the 1997 report, we used an ARIMA ARIMA(3,1,0)(2,1,0)[12] model to forecast atmospheric $CO_2$ levels. Both the ARIMA model forecast and the the realized $CO_2$ show an upward trend with seasonal pattern. However, the model predicted lower values than the realized values in the log term. 
 
-ggplot(co2_present, aes(x = year_week)) +
+```{r ARIMA-compare}
+co2.Arima.predictions <- read_csv("./data/co2_arima_preditions.csv") |> 
+  mutate(index = yearmonth(index))
+
+co2.Arima.predictions |> as_tsibble()
+
+arima.plot <- ggplot(co2_present, aes(x = index)) +
   geom_line(aes(y = average, colour = "Actual")) +
-  geom_line(data = co2.Arima.predictions %>% filter(.model == "arima_fit_log")
-            , aes(x = index, y = .mean, colour = "Predicted - Log")) +
-  geom_line(data = forecast_2022 %>% filter(.model == "arima_fit")
-            , aes(x = index, y = .mean, colour = "Predicted")) +
+  geom_line(data = co2.Arima.predictions, aes(x = index, y = value, colour = "Predicted - Log")) +
   labs(title = "CO2 Levels with Fitted ARIMA Trend", x = "Year", y = "CO2 (ppm)") +
   theme_minimal()
+```
+
+```{r arim-plot, include=TRUE,fig.cap="Comparing predicted Atmospheric CO2 Levels with Actual level - Polynomial Model", fig.width=9, fig.height=3}
+arima.plot
 ```
 
 <!-- ## (3 points) Task 4b: Evaluate the performance of 1997 linear and ARIMA models -->
@@ -148,30 +225,47 @@ ggplot(co2_present, aes(x = year_week)) +
 <!-- In 1997 you made predictions about the first time that CO2 would cross 420 ppm. How close were your models to the truth? -->
 
 ```{r predictions of 420 ppm}
-co2_present %>% 
-  filter(average > 420)
+
+# Find the first time CO2 levels reach 420 ppm in lm forecast
+time_420.lm <- co2_poly_preditions |> filter(predictions >= 420) |> slice(1)
+date_420.lm <- time_420.lm$index
+
+# Find the first time CO2 levels reach 420 ppm in ARIMA forecast
+time_420.arima <- co2.Arima.predictions |> filter(value >= 420) |> slice(1)
+date_420.arima <- time_420.arima$index
+
+# Find the first time CO2 levels reach 420 ppm in actual
+time_420_actual <- co2_present |> filter(average >= 420) |> slice(1)
+date_420_actual <- time_420_actual$index
+
+
+# co2_present %>% 
+#   filter(average > 420)
 ```
 
-In 1997, we predicted that CO2 levels would reach 420 PPM by March 2021, about a year early. Actual CO2 levels reached 420 PPM by March of 2022.
+In 1997, we predicted that CO2 levels would reach 420 PPM by March 2025, about a year early. Actual CO2 levels reached 420 PPM by March of 2022.
 
-After reflecting on your performance on this threshold-prediction task, continue to use the weekly data to generate a month-average series from 1997 to the present, and compare the overall forecasting performance of your models from Parts 2a and 3b over the entire period. (You should conduct formal tests for this task.)
+<!-- After reflecting on your performance on this threshold-prediction task, continue to use the weekly data to generate a month-average series from 1997 to the present, and compare the overall forecasting performance of your models from Parts 2a and 3b over the entire period. (You should conduct formal tests for this task.) -->
 
 ```{r month-average series from 1997 to present}
-co2_present <- co2_present %>% 
-  mutate(
-    index = yearmonth(year_week)
-  )
+# co2_present <- co2_present %>% 
+#   mutate(
+#     index = yearmonth(year_week)
+#   )
+# 
+# monthly_avg <- co2_present %>%
+#   index_by(index) %>%
+#   summarise(value = mean(average, na.rm = TRUE)) %>% 
+#   filter(index >= ymd(19950101))
+# 
+# forecast_present <- co2_fit %>% 
+#   forecast(monthly_avg)
+# 
+# forecast_present %>% 
+#   accuracy(monthly_avg)
 
-monthly_avg <- co2_present %>%
-  index_by(index) %>%
-  summarise(value = mean(average, na.rm = TRUE)) %>% 
-  filter(index >= ymd(19950101))
-
-forecast_present <- co2_fit %>% 
-  forecast(monthly_avg)
-
-forecast_present %>% 
-  accuracy(monthly_avg)
+rmse_lm <- sqrt(mean((co2_present$average - co2_poly_preditions$predictions)^2))
+rmse_arima <- sqrt(mean((co2_present$average - co2.Arima.predictions$value)^2))
 ```
 
 Our ARIMA model with log transformation produces the lowest RMSE and MAE values compared with the ARIMA model and the random walk models.
@@ -182,18 +276,18 @@ Our ARIMA model with log transformation produces the lowest RMSE and MAE values 
 
 ```{r split new data}
 co2_present_SA_train <- co2_present %>%
-  filter(date_time < as.Date("2022-06-30")) %>%
+  filter(index < as.Date("2022-06-30")) %>%
   mutate(average = difference(average,52))
 
 co2_present_NSA_train <- co2_present %>%
-  filter(date_time < as.Date("2022-06-30"))
+  filter(index < as.Date("2022-06-30"))
 
 co2_present_SA_test <- co2_present %>%
-  filter(date_time >= as.Date("2022-06-30")) %>%
+  filter(index >= as.Date("2022-06-30")) %>%
   mutate(average = difference(average,52))
 
 co2_present_NSA_test <- co2_present %>%
-  filter(date_time >= as.Date("2022-06-30"))
+  filter(index >= as.Date("2022-06-30"))
 
 ```
 
@@ -272,7 +366,7 @@ The top performing models for SA and NSA data both has residuals that rejected t
 
 The superior model for the SA data is an ARIMA(5,1,0)(1,0,0)[52], which has five AR terms, first differencing, and one seasonal AR term with a period of 52 weeks. The superior model for the NSA data is an ARIMA(1,1,4)(0,0,1)[52], which has one AR term, first differencing, four MA terms, and one seasonal MA term with a period of 52.
 
-```{r forecast SA}
+```{r forecast SA, include=TRUE}
 co2_forecast_SA <- co2_fit_present_SA %>% 
   forecast(co2_present_SA_test)
 
@@ -284,7 +378,7 @@ co2_forecast_SA %>%
   labs(y = "SA Avg CO2 (ppm)",title = "Seasonally Adjusted Average CO2 ppm") + guides(colour = guide_legend(title = "Forecast"))
 ```
 
-```{r forecast NSA}
+```{r forecast NSA, include=TRUE}
 co2_forecast_NSA <- co2_fit_present_NSA %>% 
   forecast(co2_present_NSA_test)
 
