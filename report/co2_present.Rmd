@@ -108,7 +108,7 @@ co2_present <- read_csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly
 #   )
 
 
-# remove values less than 0
+# remove values less than 0 and group by month
 co2_present <- co2_present %>% 
   filter(average > 0) %>% 
   mutate(
@@ -168,7 +168,7 @@ pw + plot_annotation(
 
 ## Historical vs Present Trends in Atmospheric Carbon
 
-We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ as shown in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
+We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
 # Old Models Comparisons
 
@@ -274,19 +274,34 @@ Our ARIMA model with log transformation produces RMSE = `r rmse_arima` compared 
 <!-- Seasonally adjust the weekly NOAA data, and split both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, fit ARIMA models using all appropriate steps. Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, comparing candidate models and explaining your choice. In addition, fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model. -->
 
 ```{r split new data}
-co2_present_SA_train <- co2_present %>%
-  filter(index < as.Date("2022-06-30")) %>%
-  mutate(average = difference(average,52))
 
-co2_present_NSA_train <- co2_present %>%
-  filter(index < as.Date("2022-06-30"))
+# Seasonally adjust the data
+co2_sa <- co2_present |> 
+  model(STL(average ~ season(window = "periodic"))) |> 
+  components() |>
+  mutate(average = season_adjust) |> 
+  select(index, average)
 
-co2_present_SA_test <- co2_present %>%
-  filter(index >= as.Date("2022-06-30")) %>%
-  mutate(average = difference(average,52))
+# Split the data into training and test sets
+co2_present_SA_train <- filter(co2_sa, index < yearmonth("2022-01"))
+co2_present_SA_test <- filter(co2_sa, index >= yearmonth("2022-01"))
 
-co2_present_NSA_test <- co2_present %>%
-  filter(index >= as.Date("2022-06-30"))
+co2_present_NSA_train <- filter(co2_present, index < yearmonth("2022-01"))
+co2_present_NSA_test <- filter(co2_present, index >= yearmonth("2022-01"))
+
+# co2_present_SA_train <- co2_present %>%
+#   filter(index < as.Date("2022-06-30")) %>%
+#   mutate(average = difference(average,12))
+# 
+# co2_present_NSA_train <- co2_present %>%
+#   filter(index < as.Date("2022-06-30"))
+# 
+# co2_present_SA_test <- co2_present %>%
+#   filter(index >= as.Date("2022-06-30")) %>%
+#   mutate(average = difference(average,12))
+# 
+# co2_present_NSA_test <- co2_present %>%
+#   filter(index >= as.Date("2022-06-30"))
 
 ```
 
@@ -318,11 +333,25 @@ co2_fit_present_SA <- co2_present_SA_train %>%
   model(
     random_walk = ARIMA(average ~ 0 + pdq(0,1,0) + PDQ(0,0,0)),
     arima_fit = ARIMA(average),
-    arima_fit_log = ARIMA(log(average))
+    arima_fit_log = ARIMA(log(average)),
+    arima_fit.search = ARIMA(average, stepwise = FALSE),
+    arima_fit_log.search = ARIMA(log(average), stepwise = FALSE)
   )
 report(co2_fit_present_SA[1])
 report(co2_fit_present_SA[2])
 report(co2_fit_present_SA[3])
+
+# Estimated models results
+co2_fit_present_SA |> pivot_longer(cols = everything(), names_to = "Model name",
+                         values_to = "Orders") |> 
+  knitr::kable(caption = "Estimated ARIMA Models")
+
+# Model Comparison
+glance(co2_fit_present_SA) |>
+  arrange(AICc) |> 
+  select(.model:BIC) |> 
+  mutate_if(is.numeric, round, digits =2) |> 
+  knitr::kable(caption = "ARIMA Models Comparison")
 ```
 
 ```{r make NSA model}
@@ -332,11 +361,25 @@ co2_fit_present_NSA <- co2_present_NSA_train %>%
   model(
     random_walk = ARIMA(average ~ 0 + pdq(0,1,0) + PDQ(0,0,0)),
     arima_fit = ARIMA(average ~ 0 + pdq(0:10,1,0:10) + PDQ(0:10,0,0:10)),
-    arima_fit_log = ARIMA(log(average) ~ 0 + pdq(0,1,0) + PDQ(0:10,0,0:10))
+    arima_fit_log = ARIMA(log(average) ~ 0 + pdq(0,1,0) + PDQ(0:10,0,0:10)),
+    arima_fit.search = ARIMA(average ~ 0 + pdq(0:10,1,0:10) + PDQ(0:10,0,0:10), stepwise = FALSE),
+    arima_fit_log.search = ARIMA(log(average) ~ 0 + pdq(0,1,0) + PDQ(0:10,0,0:10), stepwise = FALSE)
   )
 report(co2_fit_present_NSA[1])
 report(co2_fit_present_NSA[2])
 report(co2_fit_present_NSA[3])
+
+# Estimated models results
+co2_fit_present_NSA |> pivot_longer(cols = everything(), names_to = "Model name",
+                         values_to = "Orders") |> 
+  knitr::kable(caption = "Estimated ARIMA Models")
+
+# Model Comparison
+glance(co2_fit_present_NSA) |>
+  arrange(AICc) |> 
+  select(.model:BIC) |> 
+  mutate_if(is.numeric, round, digits =2) |> 
+  knitr::kable(caption = "ARIMA Models Comparison")
 ```
 
 Using the information criteria of AICc, we see that the best SA model was an ARIMA(5,1,0)(1,0,0)[52] with a log transformation. This model has five AR terms and is first differenced. It also has one seasonal AR term with a period of 52 weeks. The best NSA model was an ARIMA(0,1,0)(0,0,1)[52] with a log tranformation. This model is first differenced and has one seasonal MA term where the period is 52 weeks. We selected both of these models because they had the lowest AICc. We will examine the residuals to see if they resemble white noise.
@@ -366,15 +409,19 @@ The top performing models for SA and NSA data both has residuals that rejected t
 The superior model for the SA data is an ARIMA(5,1,0)(1,0,0)[52], which has five AR terms, first differencing, and one seasonal AR term with a period of 52 weeks. The superior model for the NSA data is an ARIMA(1,1,4)(0,0,1)[52], which has one AR term, first differencing, four MA terms, and one seasonal MA term with a period of 52.
 
 ```{r forecast SA, include=TRUE}
-co2_forecast_SA <- co2_fit_present_SA %>% 
+co2_forecast_SA <- co2_fit_present_SA |> 
   forecast(co2_present_SA_test)
 
-co2_present2 <- co2_present %>%
-  mutate(average = difference(average, 52))
+# co2_present2 <- co2_present %>%
+#   mutate(average = difference(average, 12))
 
-co2_forecast_SA %>%
-  autoplot(co2_present2)+
-  labs(y = "SA Avg CO2 (ppm)",title = "Seasonally Adjusted Average CO2 ppm") + guides(colour = guide_legend(title = "Forecast"))
+co2_forecast_SA |> 
+  autoplot(colour="cornflowerblue") + 
+  autolayer(co2_present, colour="black") + 
+  geom_line(data=co2_fit_present_SA %>% augment(), aes(index,.fitted,color=.model)) +
+  facet_wrap(~.model, ncol=1, nrow=5) +
+  labs(title = "Seasonally Adjusted Average CO2 ppm", x = "Month", y = "SA Avg CO2 (ppm)") +
+  theme_swd_bar
 ```
 
 ```{r forecast NSA, include=TRUE}
@@ -382,13 +429,17 @@ co2_forecast_NSA <- co2_fit_present_NSA %>%
   forecast(co2_present_NSA_test)
 
 co2_forecast_NSA %>%
-  autoplot(co2_present)+
-  labs(y = "Avg CO2 (ppm)",title = "Average CO2 ppm (not seasonally adjusted)") + guides(colour = guide_legend(title = "Forecast"))
+  autoplot(colour="cornflowerblue") + 
+  autolayer(co2_present, colour="black") + 
+  geom_line(data=co2_fit_present_NSA %>% augment(), aes(index,.fitted,color=.model)) +
+  facet_wrap(~.model, ncol=1, nrow=5)+
+  labs(title = "Average CO2 ppm (not seasonally adjusted)", x = "Month", y = "Avg CO2 (ppm)",) +
+  theme_swd_bar
 ```
 
 ```{r}
-accuracy(co2_forecast_NSA, co2_present_NSA_test)
-accuracy(co2_forecast_SA, co2_present_SA_test)
+accuracy(co2_forecast_NSA, co2_present_NSA_test) |> arrange("rmse")
+accuracy(co2_forecast_SA, co2_present_SA_test) |> arrange("rmse")
 ```
 
 -   STILL NEED TO DO THE FOLLOWING:\*
