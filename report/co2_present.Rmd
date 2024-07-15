@@ -170,30 +170,26 @@ pw + plot_annotation(
 
 We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ as shown in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
-# Model Comparisons
+# Old Models Comparisons
 
 ## Linear Model
 <!-- ## (1 point) Task 2b: Compare linear model forecasts against realized CO2 -->
 
 <!-- Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from a linear time model in 1997 (i.e. "Task 2a"). (You do not need to run any formal tests for this task.) -->
 
-Our polynomial model looks like it did a pretty good job at predicting $CO_2$ up to 2020. It is missing the peaks and valleys, but it looks to capture the average yearly increase in $CO_2$ levels.
+Our polynomial model looks like it did a pretty good job at predicting $CO_2$ up to 2024. It is missing the peaks and valleys, but it looks to capture the average yearly increase in $CO_2$ levels as shown in Figure \@ref(fig:poly-vs-arima-plot).
 
 ```{r linear-compare}
 co2_poly_preditions <- read_csv("./data/co2_poly_preditions.csv") |> 
   mutate(index = yearmonth(index))
 
-co2_poly_preditions |> as_tsibble()
+co2_poly_preditions <- co2_poly_preditions |> as_tsibble()
 
 lm.plot <- ggplot(co2_present, aes(x = index)) +
-  geom_line(aes(y = average, colour = "Actual")) +
-  geom_line(data = co2_poly_preditions, aes(x = index, y = predictions, colour = "Predicted")) +
-  labs(title = "CO2 Levels with Fitted Linear Trend", x = "Year", y = "CO2 (ppm)") +
-  theme_minimal()
-```
-
-```{r lm-plots, include=TRUE,fig.cap="Comparing predicted Atmospheric CO2 Levels with Actual level - Polynomial Model", fig.width=9, fig.height=3}
-lm.plot
+  geom_line(aes(y = average)) +
+  geom_line(data = co2_poly_preditions, aes(x = index, y = predictions), color = FOUNDERS_ROCK) +
+  labs(title = paste("Forecast with <strong><span style='color:" , FOUNDERS_ROCK ,"'>Polynomial</span></strong> Model"), x = "Month", y = "CO2 (ppm)") +
+  theme_swd_bar
 ```
 
 ## ARIMA Model
@@ -201,24 +197,29 @@ lm.plot
 
 <!-- Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from the ARIMA model that you fitted in 1997 (i.e. "Task 3a"). Describe how the Keeling Curve evolved from 1997 to the present. -->
 
-In the 1997 report, we used an ARIMA ARIMA(3,1,0)(2,1,0)[12] model to forecast atmospheric $CO_2$ levels. Both the ARIMA model forecast and the the realized $CO_2$ show an upward trend with seasonal pattern. However, the model predicted lower values than the realized values in the log term. 
+In the 1997 report, we used an ARIMA(3,1,0)(2,1,0)[12] model to forecast atmospheric $CO_2$ levels. Both the ARIMA model forecast and the the realized $CO_2$ show an upward trend with seasonal pattern. However, the model predicted lower values than the realized values in the long term as shown in Figure \@ref(fig:poly-vs-arima-plot). 
 
 ```{r ARIMA-compare}
 co2.Arima.predictions <- read_csv("./data/co2_arima_preditions.csv") |> 
   mutate(index = yearmonth(index))
 
-co2.Arima.predictions |> as_tsibble()
+co2.Arima.predictions <- co2.Arima.predictions |> as_tsibble()
 
 arima.plot <- ggplot(co2_present, aes(x = index)) +
-  geom_line(aes(y = average, colour = "Actual")) +
-  geom_line(data = co2.Arima.predictions, aes(x = index, y = value, colour = "Predicted - Log")) +
-  labs(title = "CO2 Levels with Fitted ARIMA Trend", x = "Year", y = "CO2 (ppm)") +
-  theme_minimal()
+  geom_line(aes(y = average)) +
+  geom_line(data = co2.Arima.predictions, aes(x = index, y = value), color = CALIFORNIA_GOLD) +
+  labs(title = paste("Forecast with <strong><span style='color:" , CALIFORNIA_GOLD ,"'>ARIMA</span></strong> Model"), x = "Month", y = "CO2 (ppm)") +
+  theme_swd_bar
 ```
 
-```{r arim-plot, include=TRUE,fig.cap="Comparing predicted Atmospheric CO2 Levels with Actual level - Polynomial Model", fig.width=9, fig.height=3}
-arima.plot
+```{r poly-vs-arima-plot, include=TRUE,fig.cap="Comparing Realized Atmospheric CO2 Levels with Polynomial and ARIMA Models", fig.width=9, fig.height=3}
+lm.plot + arima.plot + plot_annotation(
+  title = 'Reliazed vs Forecasted Atmospheric CO2 plots 1997 - 2024',
+  subtitle = 'The Polynomial model performing better than the ARIMA model when compard to Actual data'
+)
 ```
+
+## Linear vs ARIMA
 
 <!-- ## (3 points) Task 4b: Evaluate the performance of 1997 linear and ARIMA models -->
 
@@ -237,13 +238,9 @@ date_420.arima <- time_420.arima$index
 # Find the first time CO2 levels reach 420 ppm in actual
 time_420_actual <- co2_present |> filter(average >= 420) |> slice(1)
 date_420_actual <- time_420_actual$index
-
-
-# co2_present %>% 
-#   filter(average > 420)
 ```
 
-In 1997, we predicted that CO2 levels would reach 420 PPM by March 2025, about a year early. Actual CO2 levels reached 420 PPM by March of 2022.
+In 1997, we predicted that $CO_2$ levels would reach 420 PPM by March 2025 using our ARIMA model and `r date_420.lm` using the Polynomial model. However, Actual $CO_2$ levels reached 420 PPM by `r date_420_actual`.
 
 <!-- After reflecting on your performance on this threshold-prediction task, continue to use the weekly data to generate a month-average series from 1997 to the present, and compare the overall forecasting performance of your models from Parts 2a and 3b over the entire period. (You should conduct formal tests for this task.) -->
 
@@ -268,7 +265,9 @@ rmse_lm <- sqrt(mean((co2_present$average - co2_poly_preditions$predictions)^2))
 rmse_arima <- sqrt(mean((co2_present$average - co2.Arima.predictions$value)^2))
 ```
 
-Our ARIMA model with log transformation produces the lowest RMSE and MAE values compared with the ARIMA model and the random walk models.
+Our ARIMA model with log transformation produces RMSE = `r rmse_arima` compared to the Polynomial model with RMSE = `r rmse_lm`. Based on the descriptive analysis, and the RMSE comparisons, we can conclude that despite the fact that the ARIMA model performed better with the training data the Polynomial model performed better than the ARIMA model in the long term forecast. 
+
+# New Model
 
 <!-- ## (4 points) Task 5b: Train best models on present data -->
 
