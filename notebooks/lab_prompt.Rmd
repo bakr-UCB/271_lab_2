@@ -660,7 +660,7 @@ co2_forecast_NSA %>%
   labs(y = "Avg CO2 (ppm)",title = "Average CO2 ppm (not seasonally adjusted)") + guides(colour = guide_legend(title = "Forecast"))
 ```
 
-```{r}
+```{r accuracy}
 accuracy(co2_forecast_NSA, co2_present_NSA_test)
 accuracy(co2_forecast_SA, co2_present_SA_test)
 ```
@@ -668,6 +668,46 @@ accuracy(co2_forecast_SA, co2_present_SA_test)
 - Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, 
 - Comparing candidate models and explaining your choice. 
 - Fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model.
+
+```{r fit polynomial model}
+# Add seasonal dummy variables
+co2_present_SA_train <- co2_present_SA_train |> 
+  mutate(month = factor(month))
+
+# Fit the polynomial model with seasonal dummies
+mod.poly.season2 <- lm(average ~ time(year_week) + I(time(year_week)^2) + month, data = co2_present_SA_train)
+summary(mod.poly.season2)
+
+# Plot the polynomial model
+
+poly.mod.plot2 <- co2_present_SA_train |>
+ggplot(aes(x = year_week)) +
+  geom_line(aes(y = average, colour = "Actual")) +
+  geom_line(aes(y = predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_train)), colour = "Predicted")) + #ran out of time but this isn't the same length as year_week so it's causing issues
+  labs(title = "Fitted Polynomial Model", x = "Month", y = "CO2 (ppm)")
+
+poly.mod.plot2
+```
+
+```{r}
+co2_present_SA_test <- co2_present_SA_test |> 
+  mutate(month = factor(month))
+
+# Plot the polynomial model
+
+poly.mod.plot2 <- co2_present_SA_test |>
+ggplot(aes(x = year_week)) +
+  geom_line(aes(y = average, colour = "Actual")) +
+  geom_line(aes(y = predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_test)), colour = "Predicted")) + #ran out of time but this isn't the same length as year_week so it's causing issues
+  labs(title = "Fitted Polynomial Model", x = "Month", y = "CO2 (ppm)")
+
+poly.mod.plot2
+```
+```{r}
+accuracy(predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_test)), co2_present_SA_test$average)
+accuracy(predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_train)), co2_present_SA_train$average)
+```
+Our polynomial model performs well in sample, but does appears to underpredict out of sample. The model does not perform better than the ARIMA model out of sample.
 
 ```{r}
 co2_present$average <- na.interp(co2_present$average)
@@ -688,3 +728,8 @@ components(dcmp)
 ## (3 points) Task Part 6b: How bad could it get?
 
 With the non-seasonally adjusted data series, generate predictions for when atmospheric CO2 is expected to be at 420 ppm and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2122. How confident are you that these will be accurate predictions?
+
+```{r}
+
+```
+
