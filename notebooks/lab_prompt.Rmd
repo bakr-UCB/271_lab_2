@@ -665,9 +665,6 @@ accuracy(co2_forecast_NSA, co2_present_NSA_test)
 accuracy(co2_forecast_SA, co2_present_SA_test)
 ```
 * STILL NEED TO DO THE FOLLOWING:*
-- Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, 
-- Comparing candidate models and explaining your choice. 
-- Fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model.
 
 ```{r fit polynomial model}
 # Add seasonal dummy variables
@@ -707,7 +704,7 @@ poly.mod.plot2
 accuracy(predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_test)), co2_present_SA_test$average)
 accuracy(predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_train)), co2_present_SA_train$average)
 ```
-Our polynomial model performs well in sample, but does appears to underpredict out of sample. The model does not perform better than the ARIMA model out of sample.
+Our polynomial model performs well in sample, but does appears to under predict out of sample. The model does not perform better than the ARIMA model out of sample.
 
 ```{r}
 co2_present$average <- na.interp(co2_present$average)
@@ -730,6 +727,10 @@ components(dcmp)
 With the non-seasonally adjusted data series, generate predictions for when atmospheric CO2 is expected to be at 420 ppm and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2122. How confident are you that these will be accurate predictions?
 
 ```{r}
+co2_forecast_NSA2 <- co2_fit_present_NSA %>% 
+  forecast(h = "100 years")
 
+co2_forecast_NSA2 %>% 
+  filter(.model == "arima_fit_log")
 ```
 
