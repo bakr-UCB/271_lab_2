@@ -96,7 +96,7 @@ In the 1997 report, we explored the trend and variability in atmospheric $CO_2$ 
 
 ## Measuring Atmospheric Carbon
 
-Since our last report, the volcano near the research center has erupted. Therefore the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. Additionally, there is a note that the last several months worth of data is "preliminary" and therefore could be revised. Furthermore, the provided data consists of weekly averages, and we will need to calculate monthly averages from 1997 to the present in order to compare with the forecast data from the 1997 report.
+Up until April 2019, measurements were collected using infrared absorption. After April 2019, a new CO2 analyzer was installed which uses Cavity Ring-Down Spectroscopy (CRDS). This change in devices could impact the errors in our predictions. Additionally, since our last report, the volcano near the research center has erupted. Therefore, the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. There is also a note that the last several months worth of data is "preliminary" and therefore could be revised. Furthermore, the provided data consists of weekly averages, and we will need to calculate monthly averages from 1997 to the present in order to compare with the forecast data from the 1997 report. 
 
 ```{r read data}
 co2_present <- read_csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", skip = 35)
@@ -168,7 +168,7 @@ pw + plot_annotation(
 
 ## Historical vs Present Trends in Atmospheric Carbon
 
-We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the segificance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
+We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the significance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
 # Old Models Comparisons
 
@@ -215,7 +215,7 @@ arima.plot <- ggplot(co2_present, aes(x = index)) +
 ```{r poly-vs-arima-plot, include=TRUE,fig.cap="Comparing Realized Atmospheric CO2 Levels with Polynomial and ARIMA Models", fig.width=9, fig.height=3}
 lm.plot + arima.plot + plot_annotation(
   title = 'Reliazed vs Forecasted Atmospheric CO2 plots 1998 - 2024',
-  subtitle = 'The Polynomial model performing better than the ARIMA model when compard to Actual data'
+  subtitle = 'The polynomial model performs better than the ARIMA model, when compared to actual data'
 )
 ```
 
@@ -240,7 +240,7 @@ time_420_actual <- co2_present |> filter(average >= 420) |> slice(1)
 date_420_actual <- time_420_actual$index
 ```
 
-In 1997, we predicted that $CO_2$ levels would reach 420 PPM by March 2025 using our ARIMA model and `r date_420.lm` using the Polynomial model. However, Actual $CO_2$ levels reached 420 PPM by `r date_420_actual`.
+In 1997, we predicted that $CO_2$ levels would reach 420 PPM by 2025 March using our ARIMA model and `r date_420.lm` using the Polynomial model. However, actual $CO_2$ levels reached 420 PPM by `r date_420_actual`. Our polynomial model was much closer to the true outcome in this case.
 
 <!-- After reflecting on your performance on this threshold-prediction task, continue to use the weekly data to generate a month-average series from 1997 to the present, and compare the overall forecasting performance of your models from Parts 2a and 3b over the entire period. (You should conduct formal tests for this task.) -->
 
@@ -275,7 +275,7 @@ Our ARIMA model with log transformation produces RMSE = `r rmse_arima`, while th
 
 <!-- Seasonally adjust the weekly NOAA data, and split both seasonally-adjusted (SA) and non-seasonally-adjusted (NSA) series into training and test sets, using the last two years of observations as the test sets. For both SA and NSA series, fit ARIMA models using all appropriate steps. Measure and discuss how your models perform in-sample and (psuedo-) out-of-sample, comparing candidate models and explaining your choice. In addition, fit a polynomial time-trend model to the seasonally-adjusted series and compare its performance to that of your ARIMA model. -->
 
-We made two copies of the `NOAA` data and seasonally adjusted one of them. After that, we split both datasets (the seasonally adjusted $(SA)$ and the non-seasonally adjusted. $(NSA)$) into training and test sets, using the last two years of observations as the test sets.
+We made two copies of the `NOAA` data and seasonally adjusted one of them. After that, we split both datasets (the seasonally adjusted $(SA)$ and the non-seasonally adjusted $(NSA)$) into training and test sets, using the last two years of observations as the test sets.
 ```{r split new data}
 
 # Seasonally adjust the data
@@ -312,7 +312,7 @@ co2_present_NSA_train %>%
   
 ```
 
-We used the KPSS test to determine whether the SA and the NSA data are stationary. For both series, the first test yields a p value of 0.01, leading us to reject the null hypothesis, indicating that the data is not stationary. After taking one difference, the p value for both series rose to 0.1, and we failed to reject the null hypothesis, suggesting that both datasets are stationary after one difference.
+We used the KPSS test to determine whether the SA and the NSA data are stationary. For both series, the first test yields a p-value of 0.01, leading us to reject the null hypothesis, indicating that the data is not stationary. After taking one difference, the p-value for both series rose to 0.1, and we failed to reject the null hypothesis, suggesting that both datasets are stationary after one difference.
 
 ```{r make SA model}
 # Seasonally-Adjusted
@@ -362,9 +362,9 @@ glance(co2_fit_present_NSA) |>
   knitr::kable(caption = "ARIMA Models Comparison - non-Seasonally Adjusted CO2 values")
 ```
 
-Based on the EDA performed earlier, it was challenging to estimate teh $p$ and $q$ terms for the ARIMA model just by looking at the `ACF` and `PACF` plots. We estimated two non-stepwise ARIMA models for each set one with log transformation and another without the log transformation. Using the information criteria `AICc` in Table \@ref(tab:sa-arima-results), we see that the best $SA$ model was an ARIMA(5,1,0)(1,0,0)[52] with a log transformation. This model has five `AR` terms and is first differenced. It also has one seasonal `AR` term with a period of 52 weeks. The best $NSA$ model was an ARIMA(0,1,0)(0,0,1)[52] with a log tranformation. This model is first differenced and has one seasonal `MA` term where the period is 52 weeks. We selected both of these models because they had the lowest `AICc`. We will examine the residuals to see if they resemble white noise.
+Based on the EDA performed earlier, it was challenging to estimate the $p$ and $q$ terms for the ARIMA model just by looking at the `ACF` and `PACF` plots. We estimated two non-stepwise ARIMA models for each set, one with log transformation and another without the log transformation. Using the information criteria `AICc` in Table \@ref(tab:sa-arima-results), we see that the best $SA$ model was an ARIMA(5,1,0)(1,0,0)[52] with a log transformation. This model has five `AR` terms and is first differenced. It also has one seasonal `AR` term with a period of 52 weeks. The best $NSA$ model was an ARIMA(0,1,0)(0,0,1)[52] with a log tranformation. This model is first differenced and has one seasonal `MA` term where the period is 52 weeks. We selected both of these models because they had the lowest `AICc`. We will examine the residuals to see if they resemble white noise.
 
-```{r SA-residals, include=TRUE, fig.cap="SA Trained ARIMA(,,)(,,)[12] Model Residuals", fig.width=9, fig.height=3}
+```{r SA-residals, include=TRUE, fig.cap="SA Trained ARIMA(5,1,0)(1,0,0)[52] Model Residuals", fig.width=9, fig.height=3}
 co2_fit_present_SA %>% 
   select(arima_fit_log.search) %>%
   gg_tsresiduals()
@@ -376,7 +376,7 @@ augment(co2_fit_present_SA) %>%
 ```
 
 
-```{r NSA-residals, include=TRUE, fig.cap="NSA Trained ARIMA(,,)(,,)[12] Model Residuals", fig.width=9, fig.height=3}
+```{r NSA-residals, include=TRUE, fig.cap="NSA Trained ARIMA(0,1,0)(0,0,1)[52] Model Residuals", fig.width=9, fig.height=3}
 co2_fit_present_NSA %>% 
   select(arima_fit_log.search) %>%
   gg_tsresiduals()
@@ -387,9 +387,9 @@ augment(co2_fit_present_NSA) %>%
   features(.innov, ljung_box, lag = 10, dof = 0)
 ```
 
-The top performing models for $SA$ and $NSA$ data both has residuals that rejected the null hypothesis of the Ljung-Box test, which indicates that they do not have white noise residuals. Therefore, we selected the models with the second lowest `AICc`, which have residuals that follow a normal distribution, and appear to be white noise in their `ACF` plots. Additionally, they both fail to reject the null hypothesis of the Ljung-Box test, indicating that the residuals exhibit no autocorrelation for 10 lags and can be regarded as white noise ($SA$ p-value = 0.23, $NSA$ p-value = 0.48).
+The top performing models for $SA$ and $NSA$ data both have residuals that rejected the null hypothesis of the Ljung-Box test, which indicates that they do not have white noise residuals. Therefore, we selected the models with the second lowest `AICc`, which have residuals that follow a normal distribution, and appear to be white noise in their `ACF` plots. Additionally, they both fail to reject the null hypothesis of the Ljung-Box test, indicating that the residuals exhibit no autocorrelation for 10 lags and can be regarded as white noise ($SA$ p-value = 0.23, $NSA$ p-value = 0.48).
 
-The superior model for the $SA$ data is an ARIMA(5,1,0)(1,0,0)[52], which has five `AR` terms, first differencing, and one seasonal `AR` term with a period of 52 weeks. The superior model for the $NSA$ data is an ARIMA(1,1,4)(0,0,1)[52], which has one `AR` term, first differencing, four `MA` terms, and one seasonal `MA` term with a period of 52.
+The superior model for the $SA$ data is an ARIMA(5,1,0)(1,0,0)[52], which has five `AR` terms, first differencing, and one seasonal `AR` term with a period of 52 weeks. The superior model for the $NSA$ data is an ARIMA(1,1,4)(0,0,1)[52], which has one `AR` term, first differencing, four `MA` terms, and one seasonal `MA` term with a period of 52 weeks.
 
 ```{r forecast SA}
 co2_forecast_SA <- co2_fit_present_SA |> 
@@ -422,7 +422,7 @@ nsa.plot <- co2_forecast_NSA |>
 ```{r sa-vs-nsa-plot, include=TRUE, fig.cap="Comparing SA vs NSA data sets ARIMA models perfomance", fig.width=9, fig.height=3}
 sa.plot + nsa.plot + plot_annotation(
   title = 'SA vs NSA Atmospheric CO2 ARIMA Models',
-  subtitle = "The NSA trained model outperofms the SA trained. However SA successfully captures the trend")
+  subtitle = "The NSA trained model outperforms the SA trained. However SA successfully captures the trend.")
 ```
 
 ```{r rmse-sa-nsa}
@@ -434,7 +434,7 @@ The selected $NSA$ trained model produced RMSE = `r round(rmse.nsa, 2)` which ou
 
 ## Polynomial Model
 
-We estimated a Polynomial model of the form: $CO2_t= \beta_0 + \beta_1 t + \beta_2 t^2 + \epsilon_t$ and trained it on the $SA$ data. Based on the model fit results, the estimated coefficient $\beta_1 = 0.14$ indicates that the $CO_2$ levels increase by $\approx0.14$ units per month which is lower than the rate of $\approx0.0674$ we estimated in the 1997 report. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also provides evidence that the $CO_2$ levels continues to have an upward linear trend. The estimated quadratic term coefficient $\beta_2 = 0.000141$. The positive coefficient suggests that the rate of increase in $CO_2$ levels is accelerating at a higher rate than the model estimated in 1997 report. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_2 = 0$.
+We estimated a Polynomial model of the form: $CO2_t= \beta_0 + \beta_1 t + \beta_2 t^2 + \epsilon_t$ and trained it on the $SA$ data. Based on the model fit results, the estimated coefficient $\beta_1 = 0.14$ indicates that the $CO_2$ levels increase by $\approx0.14$ units per month which is lower than the rate of $\approx0.0674$ we estimated in the 1997 report. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. This also provides evidence that the $CO_2$ levels continue to have an upward linear trend. The estimated quadratic term coefficient $\beta_2 = 0.000141$. The positive coefficient suggests that the rate of increase in $CO_2$ levels is accelerating at a higher rate than the model estimated in 1997 report. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_2 = 0$.
 
 ```{r fit polynomial model}
 # Add seasonal dummy variables
@@ -479,7 +479,7 @@ poly.mod.plot.insample + poly.mod.plot.psuedo + plot_annotation(
 rmse.sa.ploy.out <- accuracy(predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_test)), co2_present_SA_test$average)[, "RMSE"]
 rmse.sa.poly.in <- accuracy(predict(mod.poly.season2, newdata = as_tibble(co2_present_SA_train)), co2_present_SA_train$average)[, "RMSE"]
 ```
-Our polynomial model performs well in sample, but appears to underpredict out of sample. The polynomial model produced RMSE = `r round(rmse.sa.ploy.out, 2)` which is much higher than the ARIMA model out of sample RMSE = `r round(rmse.sa, 2)`.
+Our polynomial model performs well in sample, but appears to underpredict out-of-sample. The polynomial model produced RMSE = `r round(rmse.sa.ploy.out, 2)` which is much higher than the ARIMA model out of sample RMSE = `r round(rmse.sa, 2)`.
 
 ```{r}
 co2_present$average <- na.interp(co2_present$average)
