@@ -26,6 +26,7 @@ options(digits = 3)
 library(tidyverse)
 library(tsibble)
 library(ggtext)
+library(kableExtra)
 
 library(forecast)
 library(patchwork)
@@ -102,20 +103,21 @@ Where: $\hat{y_t}$ is the forecasted atmospheric $CO_2$ levels using the polynom
 
 ## Measuring Atmospheric Carbon
 
-Up until April 2019, measurements were collected using infrared absorption. After April 2019, a new CO2 analyzer was installed which uses Cavity Ring-Down Spectroscopy (CRDS). This change in devices could impact the errors in our predictions. Additionally, since our last report, the volcano near the research center has erupted. Therefore, the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. There is also a note that the last several months worth of data is "preliminary" and therefore could be revised. Furthermore, the provided data consists of weekly averages, and we will need to calculate monthly averages from 1997 to the present in order to compare with the forecast data from the 1997 report. 
+Up until April 2019, measurements were collected using infrared absorption. After April 2019, a new CO2 analyzer was installed which uses Cavity Ring-Down Spectroscopy (CRDS). This change in devices could impact the errors in our predictions. Additionally, since our last report, the volcano near the research center has erupted. Therefore, the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. There is also a note that the last several months worth of data is "preliminary" and therefore could be revised.
 
 ```{r read data}
-co2_present <- read_csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", skip = 35)
+co2_p <- read_csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", skip = 35)
 
-# co2_present <- co2_present %>% 
-#   mutate(
-#     date_time = make_datetime(year, month, day),
-#     year_week = yearweek(date_time)
-#   )
+n_before_1997 <- co2_p |> filter(year <= 1997) |> nrow()
+n_jul_2024 <-  co2_p |> filter(year == 2024 & month == 7) |> nrow()
+n_na <- co2_p |> filter(average < 0 & year > 1997) |> nrow()
 
+n_1 <- (nrow(co2_p) - n_before_1997)
+n_2 <- (nrow(co2_p) - n_before_1997 - n_jul_2024)
+n_3 <- (nrow(co2_p) - n_before_1997 - n_jul_2024 - n_na)
 
 # remove values less than 0 and group by month
-co2_present <- co2_present %>% 
+co2_present <- co2_p %>% 
   filter(average > 0) %>% 
   mutate(
     date_time = make_datetime(year, month, day),
@@ -127,7 +129,37 @@ co2_present <- co2_present %>%
   index_by(index) %>%
   summarise(average = mean(average, na.rm = TRUE)) %>% 
   filter(index >= yearmonth("1998 Jan"))
+
+# Checking Duplicate Data
+sum(duplicated(co2_present))
+# Checking Missing data and null data
+colSums(is.na(co2_present) | co2_present$average < 0)
 ```
+
+```{r make summary table}
+# Create the data frame
+accounting_table <- data.frame(
+  Cause = c("Start", "Before 1998", "July 2024", "Values = -1000 (*missing*)"),
+  Available = c(nrow(co2_p), n_1, n_2, n_3),
+  Remove = c(NA, n_before_1997, n_jul_2024, n_na)
+)
+```
+
+```{r Accounting-table, include=TRUE, fig.pos='H'}
+kable(
+  accounting_table,
+  col.names = c("Cause", "Number of Samples Available For Analysis (after removal for cause)", "Number of Samples Removed"),
+  digits = 3,
+  caption = "Accounting Table", 
+  booktabs = TRUE,
+) %>%
+  kable_styling(latex_options = "HOLD_position") %>% 
+  column_spec(1, width = "15em") %>% 
+  column_spec(2, width = "15em") %>%
+  column_spec(3, width = "10em")
+```
+
+The data was obtained from the United States' National Oceanic and Atmospheric Administration $NOAA$ [[accessible here](https://gml.noaa.gov/ccgg/trends/data.html)]. The dataset contains 2,617 observations of weekly atmospheric concentrations of $CO_2$ levels, span from the 3rd week of May 1974 to the 1st week of July 2024. As detailed in Table \@ref(tab:Accounting-table), we excluded `r n_before_1997` observations before 1998, `r n_jul_2024` observation for one week in July 2024 as the month data was incomplete, and `r n_na` observations where average $CO_2$ = -1000, which indicates missing readings. We ended up with 1,379 observations after cleaning up the data. Then, we calculated the monthly averages from January 1998 to the Jun 2024 to address the 4 missing weekly values and to facilitate comparison with the forecast data from the 1997 report, which was also in by month.
 
 ```{r EDA standard plots for present data}
 # time series
