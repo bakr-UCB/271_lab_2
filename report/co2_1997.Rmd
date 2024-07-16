@@ -158,7 +158,7 @@ pw + plot_annotation(
 )
 ```
 
-As we see in Figure \@ref(fig:EDA-plots) the time series in the top left, there is a pretty strong seasonality as well as a linear upward trend. Additionally, The dataset is not mean stationary but it may be variance stationary.
+As we see in Figure \@ref(fig:EDA-plots), which is the time series in the top left, there is a pretty strong seasonality as well as a linear upward trend. Additionally, the dataset is not mean stationary but it may be variance stationary.
 
 The `ACF` decays slowly but does not dampen below the significance level even after lag 24. This suggests a strong autocorrelation in the $CO_2$ values while the `PACF` drops shortly after lag 1 but still has an oscillating pattern with a few lags above the significance level. This suggests that this series may have a unit root. Both `ACF` and `PACF` show seasonality patterns.
 
@@ -294,7 +294,7 @@ ggplot( aes(x = index, y = resid(log.mod.linear))) +
   theme_swd_bar
 ```
 
-A logarithmic transformation can stabilize variance and make growth trends more linear. However, in this case, the log-linear model with $R^2 = 0.972$ does not significantly improve the fit compared to the quadratic model with $R^2 = 0.979$.
+A logarithmic transformation can stabilize variance and make growth trends more linear. However, in this case, the log-linear model with $R^2 = 0.972$ does not greatly improve the fit compared to the quadratic model with $R^2 = 0.979$.
 
 ## Polynomial Model
 
@@ -340,7 +340,7 @@ quad.mod.plot + poly.mod.plot
 
 <!-- Following all appropriate steps, choose an ARIMA model to fit to the series. Discuss the characteristics of your model and how you selected between alternative ARIMA specifications. Use your model (or models) to generate forecasts to the year 2022. -->
 
-Based on the EDA and `ACF` and `PACF` plots in Figure \@ref(fig:EDA-plots), it was challenging to determine the parameters $p$ and $q$ using a combination. Therefore, we used `AIC` and `BIC` to estimate the parameters.
+Based on the EDA and `ACF` and `PACF` plots in Figure \@ref(fig:EDA-plots), it was challenging to determine the parameters $p$ and $q$ using figures alone. Therefore, we used `AICc` to estimate the parameters.
 
 ```{r test train split}
 co2_train <- co2.ts %>% 
@@ -367,8 +367,6 @@ co2_train %>%
   labs(subtitle = "CO2")
 ```
 
-We estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models, using both the regular and the logarithmic transformed $CO_2$ value once using stepwise and and non-stepwise search.
-
 ```{r ARIMA model fit}
 co2_fit <- co2_train %>% 
   model(
@@ -394,7 +392,7 @@ glance(co2_fit) |>
   knitr::kable(caption = "ARIMA Models Comparison")
 ```
 
-By examining Table \@ref(tab:ARIMA-results), we find that the model with the lowest AICc value is ARIMA(3,1,0)(2,1,0)[12] with a log transformation. This aligns with our earlier observation that the log transformation yields better results.
+We estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models. One model used the data as is, and one had a log transformation. We included models with stepwise and non-stepwise searches for each dataset. By examining Table \@ref(tab:ARIMA-results), we find that the model with the lowest AICc value is ARIMA(3,1,0)(2,1,0)[12] with a log transformation (non-stepwise search). This aligns with our earlier observation that the log transformation yields better results.
 
 ```{r model coefs}
 # Inflation rates Model coefs
@@ -403,7 +401,7 @@ co2_fit|>
   report()
 ```
 
-The residuals line and `ACF` plots Figure \@ref(fig:ARIMA-residual) from the ARIMA(3,1,0)(2,1,0)[12] model show that all autocorrelations are within the threshold limits, indicating that the residuals are behaving like white noise which is confirmed by `Ljung Box` test with a p-value = 0.358 we fail to reject the null hypothesis $H_0: \text{data is independently distributed}$.
+The residuals line and `ACF` plots Figure \@ref(fig:ARIMA-residual) from the ARIMA(3,1,0)(2,1,0)[12] model show that all autocorrelations are within the threshold limits, indicating that the residuals are behaving like white noise which is confirmed by `Ljung Box` test. With a p-value = 0.358, we fail to reject the null hypothesis $H_0: \text{data is independently distributed}$.
 
 ```{r ARIMA-residual, include=TRUE, fig.cap="ARIMA(3,1,0)(2,1,0)[12] Model Residuals", fig.width=9, fig.height=3}
 co2_fit |> 
@@ -420,7 +418,7 @@ augment(co2_fit) |>
 ## Forecasts
 
 ```{r forecast}
-# Generate the prediction time series to 2020
+# Generate the prediction time series to 2024
 start_date <- as.Date("1998-01-01")
 end_date <- as.Date("2024-06-30")
 
@@ -522,7 +520,7 @@ Using the polynomial model with seasonal dummies, we predict that CO2 levels wil
 
 Using our best model the ARIMA(3,1,0)(2,1,0)[12], we predicted that the $CO_2$ levels will reach 420 ppm by `r date_420` with `r round(cof.int.420,0)`% confidence interval while it predicts it will reach 500 ppm by `r date_500` with `r round(cof.int.500,0)`% confidence interval.
 
-By 2100, our model predicts that CO2 levels will be at about `r avg.co2.2100` ppm on average with confidence intervals varying between `r round(conf.int.2100.lower,0)`% and `r round(conf.int.2100.upper,0)`%. These predictions are may be highly inaccurate, since we are forecasting too far into the further. Additionally, our model does not account for any unforeseen events that might impact the rate of increase. For example, increases in efficiency and decarbonization of the grid may decrease the slope of the graph. The prediction intervals provide a measure of this uncertainty: the further the projected point, the wider the intervals.
+By 2100, our model predicts that CO2 levels will be at about `r avg.co2.2100` ppm on average with confidence intervals varying between `r round(conf.int.2100.lower,0)`% and `r round(conf.int.2100.upper,0)`%. These predictions are may be highly inaccurate, since we are forecasting very far into the future. Additionally, our model does not account for any unforeseen events that might impact the rate of increase. For example, increases in efficiency and decarbonization of the grid may decrease the slope of the graph. The prediction intervals provide a measure of this uncertainty: the further the projected point, the wider the intervals.
 
 # Conclusions
 
@@ -567,7 +565,7 @@ stargazer(models,
 )
 ```
 
-# Refrences
+# References
 
 ```{=tex}
 \bibliographystyle{aea}
