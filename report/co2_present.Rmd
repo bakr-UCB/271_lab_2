@@ -206,7 +206,7 @@ pw + plot_annotation(
 
 ## Historical vs Present Trends in Atmospheric Carbon
 
-We see that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as seen in the bottom plot of average yearly $CO_2$ in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. We also see that the distribution of values is fairly wide from the histogram, with a slight right skew. We also see that the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the significance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
+Based on the EDA plots in Figure \@ref(fig:EDA-plots), we observed that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as shown in the average yearly $CO_2$ in the bottom plot in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. The histogram indicates a wide distribution of values with a slight right skew. Additionally, the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the significance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
 # Old Models Comparisons
 
