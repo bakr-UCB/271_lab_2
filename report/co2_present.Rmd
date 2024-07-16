@@ -200,7 +200,7 @@ pw <- (p8 + p11) /
 pw + plot_annotation(
   title = 'Atmospheric CO2 EDA plots 1998 - 2024',
   subtitle = 'Upward trend with clear seasonal pattern',
-  caption = 'Source: Mauna Loa Atmospheric CO2 Concentration'
+  caption = "Source: The United States' National Oceanic and Atmospheric Administration (NOAA)"
 )
 ```
 
