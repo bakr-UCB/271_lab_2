@@ -90,9 +90,9 @@ In our report we are trying to understand the trend of the atmospheric CO2 by as
   \textit{Is there a significant upward trend in atmospheric CO2 levels over time?}
 \end{quote}
 ```
-### Null Hypothesis
+## Null Hypothesis
 
-There is no significant upward trend in atmospheric CO2 levels over time. $H_0: \beta_1 \leq 0$ Where: $\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$. $CO2_t$ is the atmospheric $CO_2$ level at time $t$.
+There is no significant upward trend in atmospheric $CO_2$ levels over time. $H_0: \beta_1 \leq 0$ Where: $\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$. $CO2_t$ is the atmospheric $CO_2$ level at time $t$.
 
 # Measurement and Data
 
@@ -237,7 +237,7 @@ confint(mod.linear)
 
 Next, we fit a quadratic model of the form: $CO2_t= \beta_0 + \beta_1 t + \beta_2 t^2 + \epsilon_t$. Based on the fit results of the quadratic time trend model, the estimated coefficient $\beta_1 = 0.0674$ indicates that the $CO_2$ levels increase by $\approx0.0674$ units per month. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_1 = 0$. that also provides evidence that the $CO_2$ levels have an upward linear trend.
 
-The estimated quadratic term coefficient $\beta_2 = 0.0000886$. The positive coefficient suggests that the rate of increase in CO2 levels is accelerating. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_2 = 0$.
+The estimated quadratic term coefficient $\beta_2 = 0.0000886$. The positive coefficient suggests that the rate of increase in $CO_2$ levels is accelerating. The p-value of the time index is $<0.05$ which suggests that the coefficient is statistically significant. We reject the null hypothesis that the coefficient $\beta_2 = 0$.
 
 Both $R^2$ and the adjusted $R^2$ value is $0.979$, which means that the linear model can explain $97.9$% of the $CO_2$ levels variance, suggesting that the model effectively captures the main patterns in the data.
 
