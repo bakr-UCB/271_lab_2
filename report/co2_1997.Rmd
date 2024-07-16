@@ -392,7 +392,7 @@ glance(co2_fit) |>
   knitr::kable(caption = "ARIMA Models Comparison")
 ```
 
-We estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models. One model used the data as is, and one had a log transformation. We included models with stepwise and non-stepwise searches for each dataset. By examining Table \@ref(tab:ARIMA-results), we find that the model with the lowest AICc value is ARIMA(3,1,0)(2,1,0)[12] with a log transformation (non-stepwise search). This aligns with our earlier observation that the log transformation yields better results.
+We estimated an ARIMA(2,1,0)(2,1,0)[12] model as a baseline plus four additional models. One model used the data as is, and one had a log transformation. We used stepwise and non-stepwise searches for each model variation. By examining Table \@ref(tab:ARIMA-results), we find that the model with the lowest AICc value is ARIMA(3,1,0)(2,1,0)[12] with a log transformation (non-stepwise search). This aligns with our earlier observation that the log transformation yields better results.
 
 ```{r model coefs}
 # Inflation rates Model coefs
@@ -417,7 +417,7 @@ augment(co2_fit) |>
 
 ## Forecasts
 
-```{r forecast}
+```{r poly forecast}
 # Generate the prediction time series to 2024
 start_date <- as.Date("1998-01-01")
 end_date <- as.Date("2024-06-30")
@@ -482,6 +482,12 @@ as_tsibble(forecasts)
 forecasts.int <- forecasts |> 
   hilo(level=c(80, 95))
 
+# Avg 2022 forecasted CO2 levels
+predict.2022 <- co2.Arima.predictions |> 
+  filter(index >= yearmonth("2022 Jan") & index <= yearmonth("2022 Dec"))
+
+avg.co2.2022 <- mean(predict.2022$value, na.rm = TRUE)
+
 forecasts |> 
   autoplot(colour="cornflowerblue") + 
   autolayer(co2.ts, colour="black") + 
@@ -516,7 +522,7 @@ avg.co2.2100 <- round(mean(forecast_2100$.mean),0)
 
 ```
 
-Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r round(avg.co2.2020,2)` ppm on average by 2020.
+Using the polynomial model with seasonal dummies, we predict that CO2 levels will reach `r round(avg.co2.2020,0)` ppm on average by 2020. While the ARIMA model predict that CO2 levels will reach `r round(avg.co2.2022,0)` ppm on average by 2022.
 
 Using our best model the ARIMA(3,1,0)(2,1,0)[12], we predicted that the $CO_2$ levels will reach 420 ppm by `r date_420` with `r round(cof.int.420,0)`% confidence interval while it predicts it will reach 500 ppm by `r date_500` with `r round(cof.int.500,0)`% confidence interval.
 
