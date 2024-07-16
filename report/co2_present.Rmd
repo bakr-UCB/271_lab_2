@@ -101,7 +101,7 @@ The predicted atmospheric $CO_2$ levels from the estimated models are equal to t
 
 ## Measuring Atmospheric Carbon
 
-Up until April 2019, measurements were collected using infrared absorption. After April 2019, a new CO2 analyzer was installed which uses Cavity Ring-Down Spectroscopy (CRDS). This change in devices could impact the errors in our predictions. Additionally, since our last report, the volcano near the research center has erupted. Therefore, the measurements from Dec. 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. There is also a note that the last several months worth of data is "preliminary" and therefore could be revised.
+Up until April 2019, measurements were collected using infrared absorption. After April 2019, a new CO2 analyzer was installed which uses Cavity Ring-Down Spectroscopy (CRDS). This change in devices could impact the errors in our predictions. Additionally, since our last report, the volcano near the research center has erupted. Therefore, the measurements from December 2022 to July 4, 2023 are from the Maunakea Observatories, which are just over 20 miles north of the original observatory. There is also a note that the last several months worth of data is "preliminary" and therefore could be revised.
 
 ```{r read data}
 co2_p <- read_csv("https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_weekly_mlo.csv", skip = 35)
@@ -204,7 +204,7 @@ pw + plot_annotation(
 
 ## Historical vs Present Trends in Atmospheric Carbon
 
-Based on the EDA plots in Figure \@ref(fig:EDA-plots), we observed that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as shown in the average yearly $CO_2$ in the bottom plot in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. The histogram indicates a wide distribution of values with a slight right skew. Additionally, the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the significance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
+Based on the EDA plots in Figure \@ref(fig:EDA-plots), we observed that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as shown in the average yearly $CO_2$ in the bottom plot in Figure \@ref(fig:EDA-plots). The histogram indicates a wide distribution of values with a slight right skew. Additionally, the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the significance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
 # Old Models Evaluation
 
