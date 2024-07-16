@@ -90,9 +90,7 @@ In the 1997 report, we explored the trend and variability in atmospheric $CO_2$ 
 
 ## Null Hypothesis
 
-The predicted atmospheric $CO_2$ levels from the estimated models are equal to the realized atmospheric $CO_2$ levels for the period from January 1998 to June 2024. 
-$$H_0: \hat{y}_t - y_t= 0$$
-Where: $\hat{y_t}$ is the forecasted atmospheric $CO_2$ levels using the polynomial and ARIMA models and ${y_t}$ is the realized atmospheric $CO_2$ levels at time $t$ .
+The predicted atmospheric $CO_2$ levels from the estimated models are equal to the realized atmospheric $CO_2$ levels for the period from January 1998 to June 2024. $H_0: \hat{y}_t - y_t= 0$. Where: $\hat{y_t}$ is the forecasted atmospheric $CO_2$ levels using the polynomial and ARIMA models and ${y_t}$ is the realized atmospheric $CO_2$ levels at time $t$.
 
 # Measurement and Data
 <!-- The most current data is provided by the United States' National Oceanic and Atmospheric Administration, on a data page [[here](https://gml.noaa.gov/ccgg/trends/data.html)]. Gather the most recent weekly data from this page. (A group that is interested in even more data management might choose to work with the [hourly data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).) -->
@@ -117,18 +115,18 @@ n_2 <- (nrow(co2_p) - n_before_1997 - n_jul_2024)
 n_3 <- (nrow(co2_p) - n_before_1997 - n_jul_2024 - n_na)
 
 # remove values less than 0 and group by month
-co2_present <- co2_p %>% 
-  filter(average > 0) %>% 
+co2_present <- co2_p |>
+  filter(average > 0) |>
   mutate(
     date_time = make_datetime(year, month, day),
     index = yearmonth(date_time)
-  ) %>%
-  as_tsibble(index = index, key=day) %>% 
-  fill_gaps()%>% 
+  ) |>
+  as_tsibble(index = index, key=day) |>
+  fill_gaps() |>
   
-  index_by(index) %>%
-  summarise(average = mean(average, na.rm = TRUE)) %>% 
-  filter(index >= yearmonth("1998 Jan"))
+  index_by(index) |>
+  summarise(average = mean(average, na.rm = TRUE)) |> 
+  filter(index >= yearmonth("1998 Jan") & index != yearmonth("2024 Jul"))
 
 # Checking Duplicate Data
 sum(duplicated(co2_present))
@@ -208,14 +206,14 @@ pw + plot_annotation(
 
 Based on the EDA plots in Figure \@ref(fig:EDA-plots), we observed that the atmospheric $CO_2$ levels continued to have a strong upward linear trend since 1997, as shown in the average yearly $CO_2$ in the bottom plot in Figure \@ref(fig:EDA-plots). It appears that this linear trend very slightly increased in slope after the year 2000. The histogram indicates a wide distribution of values with a slight right skew. Additionally, the ACF tails off very slowly while the PACF drops off after lag 1 but still has few lags above the significance level. This indicates that there may be some unit roots. As this timeseries is a continuation of our previous time series, we know that this data is also not stationary.
 
-# Old Models Comparisons
+# Old Models Evaluation
 
-## Linear Model
+## Linear Model Evaluation
 <!-- ## (1 point) Task 2b: Compare linear model forecasts against realized CO2 -->
 
 <!-- Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from a linear time model in 1997 (i.e. "Task 2a"). (You do not need to run any formal tests for this task.) -->
 
-Our polynomial model did a pretty good job at predicting $CO_2$ up to 2024. It is missing the peaks and valleys, but it looks to capture the average yearly increase in $CO_2$ levels as shown in Figure \@ref(fig:poly-vs-arima-plot).
+Our polynomial model did a pretty good job at predicting $CO_2$ up to 2024. It is missing the peaks and valleys, but it looks to capture the average yearly increase in $CO_2$ levels as shown in Figure \@ref(fig:poly-vs-arima-plot). Based on the results of the paired t-test, the mean difference = -0.0326 suggests that, on average, the predictions were slightly lower than the actual observed $CO_2$ levels. However, this difference is not statistically significant with the p-value = 0.5 indicating that we fail to reject the null hypothesis $H_0: \hat{y}_t - y_t= 0$, which means that there is no statistical significant difference between the values predicted by the polynomial model  and actual $CO_2$ levels.
 
 ```{r linear-compare}
 co2_poly_preditions <- read_csv("./data/co2_poly_preditions.csv") |> 
@@ -228,14 +226,17 @@ lm.plot <- ggplot(co2_present, aes(x = index)) +
   geom_line(data = co2_poly_preditions, aes(x = index, y = predictions), color = FOUNDERS_ROCK) +
   labs(title = paste("Forecast with <strong><span style='color:" , FOUNDERS_ROCK ,"'>Polynomial</span></strong> Model"), x = "Month", y = "CO2 (ppm)") +
   theme_swd_bar
+
+# Perform the paired t-test for the polynomial model
+t.test(co2_poly_preditions$predictions, co2_present$average, paired = TRUE)
 ```
 
-## ARIMA Model
+## ARIMA Model Evaluation
 <!-- ## (1 point) Task 3b: Compare ARIMA models forecasts against realized CO2 -->
 
 <!-- Descriptively compare realized atmospheric CO2 levels to those predicted by your forecast from the ARIMA model that you fitted in 1997 (i.e. "Task 3a"). Describe how the Keeling Curve evolved from 1997 to the present. -->
 
-In the 1997 report, we used an ARIMA(3,1,0)(2,1,0)[12] model to forecast atmospheric $CO_2$ levels. Both the ARIMA model forecast and the the realized $CO_2$ show an upward trend with seasonal pattern. However, the model predicted lower values than the realized values in the long term as shown in Figure \@ref(fig:poly-vs-arima-plot). 
+In the 1997 report, we used an ARIMA(3,1,0)(2,1,0)[12] model to forecast atmospheric $CO_2$ levels. Both the ARIMA model forecast and the the realized $CO_2$ show an upward trend with seasonal pattern. However, the model predicted lower values than the realized values in the long term as shown in Figure \@ref(fig:poly-vs-arima-plot). Based on the results of the paired t-test, the mean difference = -3.66 suggests that, on average, the predictions were lower than the actual observed $CO_2$ levels by 3.66 units. The difference is statistically significant with the p-value < 0.05 indicating that we reject the null hypothesis $H_0: \hat{y}_t - y_t= 0$, which means that the difference between the $CO_2$ levels predicted by the ARIMA model and the actual are statistically significant. 
 
 ```{r ARIMA-compare}
 co2.Arima.predictions <- read_csv("./data/co2_arima_preditions.csv") |> 
@@ -248,6 +249,9 @@ arima.plot <- ggplot(co2_present, aes(x = index)) +
   geom_line(data = co2.Arima.predictions, aes(x = index, y = value), color = CALIFORNIA_GOLD) +
   labs(title = paste("Forecast with <strong><span style='color:" , CALIFORNIA_GOLD ,"'>ARIMA</span></strong> Model"), x = "Month", y = "CO2 (ppm)") +
   theme_swd_bar
+
+# Perform the paired t-test for the polynomial model
+t.test(co2.Arima.predictions$value, co2_present$average, paired = TRUE)
 ```
 
 ```{r poly-vs-arima-plot, include=TRUE,fig.cap="Comparing Realized Atmospheric CO2 Levels with Polynomial and ARIMA Models", fig.width=9, fig.height=3}
@@ -303,7 +307,7 @@ rmse_lm <- sqrt(mean((co2_present$average - co2_poly_preditions$predictions)^2))
 rmse_arima <- sqrt(mean((co2_present$average - co2.Arima.predictions$value)^2))
 ```
 
-Our ARIMA model with log transformation produces RMSE = `r rmse_arima`, while the Polynomial model produces an RMSE = `r rmse_lm`. Considering the descriptive analysis, threshold-prediction results, and the RMSE comparisons, we can conclude that despite the fact that the ARIMA model performed better with the 1997 data, the Polynomial model outperformed the ARIMA model in the long-term forecast. 
+Our ARIMA model with log transformation produces RMSE = `r rmse_arima`, while the Polynomial model produces an RMSE = `r rmse_lm`. Considering the descriptive analysis, the t-test results, threshold-prediction results, and the RMSE comparisons, we can conclude that despite the fact that the ARIMA model performed better with the 1997 data, the Polynomial model outperformed the ARIMA model in the long-term forecast. 
 
 # New Model
 
