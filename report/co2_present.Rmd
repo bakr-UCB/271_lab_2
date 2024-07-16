@@ -87,6 +87,8 @@ In the 1997 report, we explored the trend and variability in atmospheric $CO_2$ 
 
 ### Null Hypothesis
 
+We evaluate the same null hypothesis as in the previous report: There is no significant upward trend in atmospheric CO2 levels over time. $H_0: \beta_1 \leq 0$ Where: $\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$. $CO2_t$ is the atmospheric $CO_2$ level at time $t$.
+
 # Measurement and Data
 <!-- The most current data is provided by the United States' National Oceanic and Atmospheric Administration, on a data page [[here](https://gml.noaa.gov/ccgg/trends/data.html)]. Gather the most recent weekly data from this page. (A group that is interested in even more data management might choose to work with the [hourly data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).) -->
 
@@ -500,4 +502,20 @@ components(dcmp)
 
 <!-- With the non-seasonally adjusted data series, generate predictions for when atmospheric CO2 is expected to be at 420 ppm and 500 ppm levels for the first and final times (consider prediction intervals as well as point estimates in your answer). Generate a prediction for atmospheric CO2 levels in the year 2122. How confident are you that these will be accurate predictions? -->
 
+```{r}
+co2_forecast_NSA_2122 <- co2_fit_present_NSA %>% 
+  forecast(h = "100 years") %>% 
+  filter(.model == "arima_fit_log.search")
+
+pred_2121 <- co2_forecast_NSA_2122 %>% 
+  filter(index == yearmonth("21211201"))
+
+pred_500ppm <- co2_forecast_NSA_2122 %>% 
+  filter(.mean >= 500)
+```
+
+In 1997, we predicted that CO2 levels would reach 500 ppm by the year 2050. Our updated prediction is that we will reach 500 ppm by `r round(pred_500ppm$index[1], 2)`. This indicates that the updated data may support a slowing of the growth in atmospheric CO2. By 2122, our model predicts that CO2 levels will reach `r round(pred_2121$.mean, 2)` ppm. As with the 1997 report, we have low confidence in these predictions, as we are well beyond the range of our data, and have no way of accounting for improvements in efficiency, grid electrification, etc.
+
 # Conclusion
+
+The updated atmospheric CO2 data shows that the increasing trend in CO2 levels continued roughtly as expected. We still see significant coefficients in our predictive models, and forecast that CO2 levels will continue to rise into the future, barring any significant intervention. As follows, we again reject our null hypothesis.
