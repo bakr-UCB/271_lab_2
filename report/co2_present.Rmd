@@ -72,22 +72,26 @@ scaleFUN <- function(x) format(round(as.numeric(x), 0), nsmall=0, big.mark=",")
 
 <!-- One of the very interesting features of Keeling and colleagues' research is that they were able to evaluate, and re-evaluate the data as new series of measurements were released. This permitted the evaluation of previous models' performance and a much more difficult question: If their models' predictions were "off" was this the result of a failure of the model, or a change in the system? -->
 
-# Background
+# Introduction
 <!-- ## (1 point) Task 0b: Introduction -->
 
 <!-- In this introduction, you can assume that your reader will have **just** read your 1997 report. In this introduction, **very** briefly pose the question that you are evaluating, and describe what (if anything) has changed in the data generating process between 1997 and the present. -->
 
-In the 1997 report, we explored the trend and variability in atmospheric $CO_2$ levels using polynomial and ARIMA models. Our analysis indicated a significant upward trend in $CO_2$ levels, with an accelerating rate of increase. In this report, we aim to re-evaluate those models and their predictions using the latest data. The central question we are addressing is: 
+## Background
+
+In the 1997 report, we explored the trend and variability in atmospheric $CO_2$ levels using polynomial and ARIMA models. Our analysis indicated a significant upward trend in $CO_2$ levels, with an accelerating rate of increase. In this report, we aim to re-evaluate those models and their predictions using the $CO_2$ level data realized after 1997. The central question we are addressing is:
 
 ```{=tex}
 \begin{quote}
-  \textit{Have the previous models accurately predicted current $CO_2$ levels?}
+  \textit{Have the previous models accurately predicted the realized atmospheric $CO_2$ levels?}
 \end{quote}
 ```
 
-### Null Hypothesis
+## Null Hypothesis
 
-We evaluate the same null hypothesis as in the previous report: There is no significant upward trend in atmospheric CO2 levels over time. $H_0: \beta_1 \leq 0$ Where: $\beta_1$ is the trend coefficient over time in a linear regression model of the form $CO2_t = \beta_0 + \beta_1 \cdot t + \epsilon_t$. $CO2_t$ is the atmospheric $CO_2$ level at time $t$.
+The predicted atmospheric $CO_2$ levels from the estimated models are equal to the realized atmospheric $CO_2$ levels for the period from January 1998 to June 2024. 
+$$H_0: \hat{y}_t - y_t= 0$$
+Where: $\hat{y_t}$ is the forecasted atmospheric $CO_2$ levels using the polynomial and ARIMA models and ${y_t}$ is the realized atmospheric $CO_2$ levels at time $t$ .
 
 # Measurement and Data
 <!-- The most current data is provided by the United States' National Oceanic and Atmospheric Administration, on a data page [[here](https://gml.noaa.gov/ccgg/trends/data.html)]. Gather the most recent weekly data from this page. (A group that is interested in even more data management might choose to work with the [hourly data](https://gml.noaa.gov/aftp/data/trace_gases/co2/in-situ/surface/mlo/co2_mlo_surface-insitu_1_ccgg_HourlyData.txt).) -->
@@ -518,4 +522,4 @@ In 1997, we predicted that CO2 levels would reach 500 ppm by the year 2050. Our 
 
 # Conclusion
 
-The updated atmospheric CO2 data shows that the increasing trend in CO2 levels continued roughtly as expected. We still see significant coefficients in our predictive models, and forecast that CO2 levels will continue to rise into the future, barring any significant intervention. As follows, we again reject our null hypothesis.
+The updated atmospheric CO2 data shows that the increasing trend in CO2 levels continued roughly as expected. We still see significant coefficients in our predictive models, and forecast that CO2 levels will continue to rise into the future, barring any significant intervention. As follows, we again reject our null hypothesis.
